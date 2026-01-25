@@ -7,7 +7,7 @@
 [![Claude Code Skill](https://img.shields.io/badge/Claude_Code-Skill-blue)](https://claude.com/claude-code)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-一个专为 Claude Code 设计的中文小说创作助手。10-20 章的中篇小说，几十分钟内完成初稿。
+</div>
 
 ---
 
