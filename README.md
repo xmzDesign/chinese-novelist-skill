@@ -1,5 +1,5 @@
-
 <div align="center">
+   
 # 🎭 chinese-novelist skill
 
 ### 让 AI 为你写一部完整的中文小说
