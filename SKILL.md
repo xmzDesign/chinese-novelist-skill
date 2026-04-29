@@ -10,17 +10,29 @@ metadata:
 
 # Chinese Novelist: 中文小说创作助手
 
-## 三大黄金法则
+## 四大黄金法则
 
 1. **展示而非讲述** - 用动作和对话表现，不要直接陈述
 2. **冲突驱动剧情** - 每章必须有冲突或转折
 3. **悬念承上启下** - 每章结尾必须留下钩子
+4. **黄金三章留住读者** - 前三章必须完成启示、转折、小高潮
 
 ## 特性说明
 
+- **黄金三章专项**：开篇三章按“启示 → 转折 → 小高潮”设计和验收
+- **文学质量门禁**：反 AI 一票否决，章节必须达到最低文学质量分
 - **中断续写**：自动检测未完成项目，从断点继续创作
-- **自动校验**：创作完成后自动检查字数和质量，不合格自动修复
-- **并行写作**（可选）：支持子Agent并行写作，通过 `02-写作计划.json` 协调状态
+- **Novel Harness 章节闭环**：每章执行 read task → contract → draft → QA → fix → mark_pass → session_close
+- **自动校验**：每章写完立即生成 QA 报告，最终再做全书验收
+- **并行写作**（可选）：支持子Agent按故事弧并行写作，通过章节契约和 `02-写作计划.json` 协调状态
+
+## Novel Harness 核心原则
+
+1. **先契约后写作**：每章写作前必须存在 `chapter-contracts/第XX章.md`
+2. **先 QA 后完成**：章节只有在 `qaStatus == "pass"` 且无阻塞项时，才能标记 `completed`
+3. **先反 AI 后评分**：`antiAiStatus == "pass"` 且 `literaryScore` 达标后，才允许通过
+4. **全局状态集中写入**：并行 Agent 不直接改 `01-大纲.md` 和 `02-写作计划.json`，由 Orchestrator/State Keeper 合并
+5. **失败项定向修复**：修复阶段只处理 QA 报告中的失败项，最多 3 轮
 
 ## 核心流程
 
@@ -40,7 +52,7 @@ metadata:
 
 ### 第二阶段：规划 + 二次确认
 
-创建项目文件夹（`./chinese-novelist/{timestamp}-{小说名称}/`），生成大纲、人物档案和写作计划JSON，等待用户确认。 → 详见 [phase2-planning.md](references/flows/phase2-planning.md)
+创建项目文件夹（`./chinese-novelist/{timestamp}-{小说名称}/`），生成大纲、人物档案、黄金三章设计、章节契约和写作计划 JSON，等待用户确认。 → 详见 [phase2-planning.md](references/flows/phase2-planning.md)
 
 ### 第2.5步：写作模式选择
 
@@ -51,15 +63,15 @@ metadata:
 
 → 详见 [phase3-writing.md](references/flows/phase3-writing.md)
 
-### 第三阶段：疯狂创作（无需用户确认）
+### 第三阶段：Novel Harness 创作（无需用户确认）
 > 切记，一旦进入这个阶段，所有过程都禁止向用户确认。用户就是你的读者，你必须把完整的小说创作完成才能与用户报告
 
-根据用户选择的写作模式（串行/并行/Teams）逐章执行创作流程。每章创作前必须读取 `01-大纲.md` 中对应章节的规划信息，严格按大纲创作。支持中断续写。 → 详见 [phase3-writing.md](references/flows/phase3-writing.md)
+根据用户选择的写作模式（串行/并行/Teams）逐章执行 Novel Harness 章节 sprint。每章创作前必须读取章节契约、`01-大纲.md` 对应规划、`00-人物档案.md` 和上一章摘要；写完后必须 QA，失败则定向修复。支持中断续写。 → 详见 [phase3-writing.md](references/flows/phase3-writing.md)
 
-### 第四阶段：自动校验与修复（无需用户确认）
+### 第四阶段：最终总验收（无需用户确认）
 
-全程无需用户介入，自动检查所有章节完成度和字数，不合格章节自动重写（最多3轮）。 → 详见 [phase4-validation.md](references/flows/phase4-validation.md)
+全程无需用户介入，汇总章节 QA、字数、状态、伏笔、时间线和人物弧线；未通过章节回到第三阶段最多修复 3 轮。 → 详见 [phase4-validation.md](references/flows/phase4-validation.md)
 
 ## 共享机制
 
-偏好系统、写作计划系统、黄金法则详解、字数检查脚本等跨阶段共享机制。 → 详见 [shared-infrastructure.md](references/flows/shared-infrastructure.md)
+偏好系统、写作计划系统、黄金三章、章节契约、文学质量门禁、QA 评分、进度收口、黄金法则、字数检查脚本等跨阶段共享机制。 → 详见 [shared-infrastructure.md](references/flows/shared-infrastructure.md)

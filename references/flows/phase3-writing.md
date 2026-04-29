@@ -1,199 +1,306 @@
-# 第三阶段：疯狂创作
+# 第三阶段：Novel Harness 章节创作
 
-**重要：全程无需再次向用户确认，必须逐章创作直到完成**
+**重要：全程无需再次向用户确认，必须逐章推进直到全稿完成。**
+
+进入本阶段后，所有章节都按轻量 Novel Harness 闭环执行：
+
+```text
+read task -> contract -> draft -> humanize -> qa -> fix -> mark_pass -> session_close
+```
+
+多 Agent 角色边界详见 [novel-harness-agents.md](../agents/novel-harness-agents.md)。
 
 ---
 
 ## 0. 启动检测与模式读取
 
 开始创作前：
+
 1. 读取 `02-写作计划.json`
 2. 读取 `writingMode` 字段，进入对应模式流程
-3. 如果存在 `status: "in_progress"` 的章节 → 从该章节继续（中断续写）
-4. 如果所有章节 `status: "pending"` → 从第 1 章开始
-5. 如果存在 `status: "failed"` 的章节（Phase 4 回退）→ 从第一个 failed 章节开始
+3. 检查每章是否有 `contractPath`、`qaReportPath`、`summaryPath`
+4. 如果存在 `status: "in_progress"` 或 `"in_revision"` 的章节，从该章节继续
+5. 如果存在 `status: "failed"` 且 `retryCount < 3` 的章节，优先修复
+6. 如果所有章节 `status: "pending"`，从第 1 章开始
+
+状态含义：
+
+| 状态 | 含义 |
+|---|---|
+| `pending` | 尚未开始 |
+| `in_progress` | 正在写初稿或润色 |
+| `in_qa` | 已写完，等待 QA |
+| `in_revision` | QA 未通过，正在定向修复 |
+| `completed` | QA 通过，可进入后续章节 |
+| `failed` | 本轮 QA 失败，等待修复 |
+| `blocked` | 超过 3 轮仍未通过，留待最终报告 |
 
 ---
 
-## 1. 逐章创作流程（通用，所有模式共用）
+## 1. 章节 Sprint（通用，所有模式共用）
 
-每章创作时严格执行以下步骤：
+每章必须执行完整 sprint。章节未通过 QA 前，不得标记 `completed`。
 
-### 步骤 1: 写前分析（必须执行）
+### Step 1：read task
 
-1. 读取 `02-写作计划.json` — 查看各章节状态，确定下一个待创作章节
-2. **读取 `01-大纲.md`** — 找到当前章节的规划信息，提取：核心事件、承接上章、悬念钩子、出场人物、场景列表
-2.5. **读取 `00-人物档案.md`** — 根据大纲中本章的「出场人物」列表，提取每个出场角色的：性格核心、致命缺陷、说话风格/口头禅、恐惧/弱项、与其他角色的关系
-3. 更新 `02-写作计划.json` — 将本章 `status` 设为 `"in_progress"`
+1. 读取 `02-写作计划.json`，确定待处理章节
+2. 读取该章 `contractPath`
+3. 读取 `01-大纲.md` 中对应章节规划
+4. 读取 `00-人物档案.md` 中本章出场人物设定
+5. 读取上一章 `summaryPath`（第 1 章除外）
+6. 读取下一章规划，确认本章结尾钩子要能承接
+7. 如果当前章节为第 1-3 章，读取 `03-黄金三章.md` 和 [golden-three-chapters.md](../guides/golden-three-chapters.md)
+8. 读取 [literary-quality-gate.md](../guides/literary-quality-gate.md)
+9. 更新 `02-写作计划.json`：将本章 `status` 设为 `"in_progress"`，填入 `owner`
 
-### 步骤 2: 撰写
+### Step 2：contract check
 
-4. 创建章节文件 — 文件名格式：`第{XX}章-{章节标题}.md`（标题来自 `02-写作计划.json` 中的 `title` 字段），使用 [chapter-template.md](../guides/chapter-template.md) 模板
-5. **基于大纲规划创作** — 严格按照大纲中本章的核心事件和场景列表撰写正文
-5.5. **撰写章首引子** — 按大纲中本章的章首引子类型，参考 [hook-techniques.md](../guides/hook-techniques.md)「章首引子七式」，创作 50-150 字的引子文字
-6. 撰写正文 — **每章必须达到 3000-5000 字**
-   - 章首引子：已创作（步骤 5.5，参考 [hook-techniques.md](../guides/hook-techniques.md)「章首引子七式」）
-   - 正文开头：第一段必须使用 [chapter-guide.md](../guides/chapter-guide.md) 十种开头技巧之一，建立即时冲突
-   - 张力节奏：全章至少 2 个张力波峰，连续 500 字以上无冲突时必须引入新张力（参考 [hook-techniques.md](../guides/hook-techniques.md) 悬念强度等级）
-   - 对话要求：每章至少 30% 对话内容，每段对话必须有潜台词或推进情节目的（参考 [dialogue-writing.md](../guides/dialogue-writing.md)）
-   - 意外转折：每章至少 1 个读者预期之外的事件或信息（参考 [chapter-guide.md](../guides/chapter-guide.md)「打破读者预期」）
-   - 人物一致性：对话和行为必须严格符合步骤 2.5 提取的角色设定（性格核心、缺陷、说话风格），角色不会做出不符合其性格的事（除非是刻意设计的成长/转变，且需要前文铺垫）
-   - 内容不足？使用 [content-expansion.md](../guides/content-expansion.md) 扩充技巧
-7. 设置结尾钩子 — 按大纲中本章的悬念钩子设计 → [hook-techniques.md](../guides/hook-techniques.md)「悬念钩子十三式」
-8. **字数检查** — 必须使用脚本检查：`python scripts/check_chapter_wordcount.py <章节文件路径>`
+写作前自检章节契约：
 
-### 步骤 3: 撰写后优化
+- 核心事件是否清晰
+- 承接上章是否明确
+- 出场人物和场景列表是否完整
+- 结尾钩子是否能连接下一章
+- 用户特殊要求是否已写入契约
+- 第1-3章的黄金三章专项是否完整
+- 文学质量门槛是否写入契约：普通章节 `literaryScore >= 80`，第1-3章 `>= 85`
 
-9. 连贯性检查 — 人物一致性、情节连贯、节奏控制
-9.5. **张力检查** — 检查全章节奏是否有波峰波谷、对话是否有个性、是否有意外转折（参考 [hook-techniques.md](../guides/hook-techniques.md) 悬念强度等级和 [chapter-guide.md](../guides/chapter-guide.md)「打破读者预期」）
-10. **深度润色（去除AI味）** — 重点检查并修改：
-    - **去除过度修饰的形容词**：删减"璀璨"、"瑰丽"等AI常用词堆砌
-    - **减少抽象陈述**：把"心中涌起复杂的情感"改为具体动作/对话
-    - **打破四字格律**：避免"心潮澎湃、热血沸腾"等陈词滥调
-    - **增加口语化表达**：人物对话要有个性
-    - **优化节奏感**：长句短句交替
-    - **细节具象化**：用具体细节替代笼统描述
-11. **字数检查** — 再次使用脚本确认
+如契约缺失关键信息，主 Agent 直接从大纲和人物档案补齐契约，不向用户确认。
 
-### 步骤 4: 收尾
+第1-3章额外检查：
 
-12. 生成章节摘要 — 在 `01-大纲.md` 的章节摘要区追加（300-500字，保证连贯性参考）
-13. 更新 `02-写作计划.json` — 将本章 `status` 设为 `"completed"`，填入 `wordCount`
+| 章节 | 黄金角色 | 写作前必须确认 |
+|---|---|---|
+| 第1章 | 启示 | 主角共鸣特性、当前生活、长钉子、未来展望 |
+| 第2章 | 转折 | 第1章长钉子如何引爆、重大损失风险、不得不行动的理由 |
+| 第3章 | 小高潮 | 主角主动出手、有限胜利、心理打脸或局部兑现、更大期待 |
+
+### Step 3：draft
+
+创建章节文件，文件名使用 `02-写作计划.json` 的 `filePath`。
+
+写作要求：
+
+- 使用 [chapter-template.md](../guides/chapter-template.md) 结构
+- 按契约中的章首引子类型写 50-150 字引子
+- 正文第一段使用 [chapter-guide.md](../guides/chapter-guide.md) 十种开头技巧之一
+- 严格完成契约中的核心事件和场景列表
+- 每章必须达到 3000-5000 个汉字
+- 全章至少 2 个张力波峰
+- 每章至少 1 个读者预期外的信息、行动或反转
+- 对话必须推进情节、暴露关系或制造冲突
+- 人物行为和语气必须符合 `00-人物档案.md`
+- 结尾必须按契约设置悬念钩子
+
+前三章专项要求：
+
+- 第1章必须聚焦主角，减少无关人物，明确故事风格和路线
+- 第1章必须埋下能在第2章引爆的长钉子
+- 第2章必须让转折足够大，大到主角可能失去重要之物
+- 第2章必须强化主角行动理由，不能只让主角被动挨打
+- 第3章必须引发第一个小高潮，让主角主动出手
+- 第3章只能给有限胜利，不能直接解决主线或让主角无敌
+- 前三章必须避免低级错误：人名、时间、视角、设定、动机不能混乱
+
+写完后运行字数检查：
+
+```bash
+python scripts/check_chapter_wordcount.py <章节文件路径>
+```
+
+字数不足时，参考 [content-expansion.md](../guides/content-expansion.md) 扩写；禁止用空泛抒情灌水。
+
+### Step 4：humanize
+
+按 [literary-quality-gate.md](../guides/literary-quality-gate.md) 做反 AI 润色：
+
+- 删除过度修饰的形容词和抽象抒情
+- 用动作、对话、物件、场景细节替代总结性判断
+- 打散过密的四字词和工整排比
+- 调整句长节奏，避免每段同样长度
+- 让人物对话带有个人习惯和潜台词
+- 检查不同角色台词是否同质化
+- 检查是否用解释替代表演
+- 检查是否有低级连续性错误
+- 检查是否缺少本题材爽点或有效冲突
+
+润色不得改变契约中的核心事件、人物动机、伏笔和结尾钩子。
+
+润色后再次运行字数检查。
+
+### Step 5：qa
+
+将本章 `status` 更新为 `"in_qa"`，按 [qa-report-template.md](../guides/qa-report-template.md) 生成 `qaReportPath`。
+
+Evaluator 只读取：
+
+1. 当前章节契约
+2. 当前章节正文
+3. `00-人物档案.md`
+4. `01-大纲.md` 对应章节规划
+5. 上一章摘要
+6. 下一章规划
+7. 用户特殊要求和偏好中的 `dislikes`
+8. 第1-3章还必须读取 `03-黄金三章.md`
+9. [literary-quality-gate.md](../guides/literary-quality-gate.md)
+
+评分规则来自章节契约：
+
+- `PASS`：总分 >= 85，且无阻塞项
+- `PARTIAL`：总分 70-84，或存在非阻塞失败项
+- `FAIL`：总分 < 70，或存在任一阻塞项
+
+Evaluator 必须提供证据和可执行修复建议；禁止只写主观感受。
+
+反 AI 与文学质量规则：
+
+- `antiAiStatus == "fail"` 时，不得 `PASS`
+- 普通章节 `literaryScore < 80` 时，不得 `PASS`
+- 第1-3章 `literaryScore < 85` 时，不得 `PASS`
+- 每个 AI 痕迹问题必须使用 `A-XX` 编号，并写清位置、为什么像 AI、修复建议
+
+第1-3章如果黄金三章专项未通过，即使总分达到 85，也必须判定为 `FAIL` 或 `PARTIAL`，不得 `PASS`。
+
+### Step 6：fix
+
+如果 QA 未通过：
+
+1. 将章节 `status` 设为 `"in_revision"`
+2. `retryCount += 1`
+3. Fix Writer 只读取 QA 报告中的失败项
+4. 只修失败项，不改动已通过的核心事件、人物关系和结尾钩子
+5. 修复后回到 Step 5 复评
+
+A 类反 AI 问题修复要求：
+
+- 空泛心理改成动作、物件、身体反应、短句台词
+- AI 套话直接删除或换成具体事实，不做同义词替换
+- 对话同质时，为角色区分句长、词汇、回避方式和攻击方式
+- 设定解释过重时，拆进冲突、误会、道具、任务失败或人物争执
+- 节奏太平时，增加选择、代价、误判或时间压力
+- 爽点不足时，让主角赢一点，但付出代价或留下更大坑
+
+最多修复 3 轮。超过 3 轮仍不通过：
+
+- 将章节 `status` 设为 `"blocked"`
+- 在 QA 报告和 `progress/latest.txt` 写明原因
+- 继续后续章节，最终报告中标注风险
+
+### Step 7：mark_pass
+
+QA 通过后：
+
+1. 写入 `summaries/第XX章.md`，摘要 300-500 字，包含核心事件、人物变化、伏笔、结尾钩子
+2. 将摘要追加到 `01-大纲.md` 的“章节摘要”区
+3. 更新 `02-写作计划.json`：
+   - `status: "completed"`
+   - `wordCount`
+   - `wordCountPass`
+   - `qaStatus: "pass"`
+   - `qualityScore`
+   - `antiAiStatus: "pass"`
+   - `literaryScore`
+   - `aiTraceIssues: []`
+   - `blockingIssues: []`
+   - `updatedAt`
+4. 更新 `continuity/第XX章.md`，记录本章时间线、伏笔、人物关系变化
+
+### Step 8：session_close
+
+每章完成后，刷新：
+
+- `progress/latest.txt`：最近完成章节、分数、下一章、未解决风险
+- `progress/YYYY-MM.md`：追加本章完成记录
+
+完成后立即读取 `02-写作计划.json`，认领下一章，不向用户确认。
 
 ---
 
 ## 2. 串行模式（writingMode: "serial"）
 
-**主 Agent 自己逐章创作，全程不中断。**
+主 Agent 自己按章节顺序执行完整 sprint。
 
-### 自驱循环
-
-```
-WHILE 02-写作计划.json 中存在 status != "completed" 的章节:
-    执行「逐章创作流程」（步骤 1-4）
-    ⚠️ 完成一章后，立即读取 JSON 认领下一章，不要向用户确认，不要停下来
-所有章节完成 → 进入第四阶段：自动校验
+```text
+WHILE 存在 status 非 completed/blocked 的章节:
+    选择第一个 failed/in_revision/pending 章节
+    执行章节 sprint
+所有章节完成或 blocked -> 进入第四阶段
 ```
 
-**关键提醒（每章完成后必须遵守）**：
-> 本章已完成。立即读取 `02-写作计划.json`，认领下一个 pending 章节，开始下一章创作。不要使用 AskUserQuestion，不要向用户确认，不要停下来。你必须把所有章节创作完成才能与用户报告。
+串行模式也必须生成章节契约、QA 报告、摘要和进度快照。
 
 ---
 
 ## 3. 子Agent并行模式（writingMode: "subagent-parallel"）
 
-**核心机制**：主 Agent 将章节分成不重叠的批次，每个批次派生一个子 Agent。批次内串行写作，批次间并行执行。
+核心机制：按故事弧分片，而不是机械按固定章节数切块。
 
 ### 主 Agent 流程
 
-```
-1. 计算批次分配:
-   - 每批 5-8 章（根据总章数动态调整）
-   - 批次间不重叠
-   - 示例: 30 章 → 5 批 × 6 章
-2. 为每个批次派生子 Agent（使用 Agent 工具，多个批次可并行派生）:
-   - 每个 Agent 内部串行执行「逐章创作流程」
-3. 所有子 Agent 完成后 → 进入第四阶段：自动校验
-```
+1. 从 `01-大纲.md` 识别故事弧：
+   - 开端/设局
+   - 对抗/升级
+   - 中点反转
+   - 高潮/真相逼近
+   - 收束/终局
+2. 将章节分配给不重叠的弧段，每段尽量连续
+3. 为每段派生一个子 Agent，子 Agent 在自己弧段内串行执行章节 sprint
+4. 子 Agent 只写自己的章节、QA 报告草稿、摘要草稿和连续性报告
+5. 主 Agent 或 State Keeper 统一合并全局状态文件
+6. 每个弧段完成后生成 `summaries/arc-[编号].md`
+7. 后续弧段启动前必须读取前序弧段摘要
 
-### 子 Agent prompt 模板（并行模式）
+### 子 Agent prompt 模板
 
-```
-你是一个小说批量创作 Agent。你需要创作第 {start} 章到第 {end} 章。
+```text
+你是 Novel Harness 的 Chapter Writer，负责第 {start} 章到第 {end} 章。
 
-## 项目信息
-- 项目路径: {projectPath}
-- 你负责的章节: 第 {start} 章 到 第 {end} 章
+项目路径：{projectPath}
+负责范围：第 {start} 章到第 {end} 章
 
-## 创作步骤（对每一章依次执行）
-1. **首先读取 {projectPath}/01-大纲.md**，找到当前章节的规划信息（核心事件、承接上章、悬念钩子、出场人物、场景列表）
-1.5. **读取 {projectPath}/00-人物档案.md**，根据大纲中本章的「出场人物」，提取每个出场角色的：性格核心、致命缺陷、说话风格/口头禅、恐惧/弱项、与其他角色的关系
-2. 读取 02-写作计划.json，确认章节状态
-3. 将当前章节 status 更新为 "in_progress"
-4. 创建章节文件，文件名格式：`第{XX}章-{章节标题}.md`（标题来自 `02-写作计划.json` 的 `title` 字段），基于大纲规划撰写正文（3000-5000字）
-5. 按大纲中的章首引子类型，参考 hook-techniques.md「章首引子七式」创作章首引子（50-150字）
-6. 正文开头第一段必须使用 chapter-guide.md 十种开头技巧之一
-7. 全章至少 2 个张力波峰，连续 500 字以上无冲突必须引入新张力
-8. 每章至少 30% 对话，对话必须有潜台词和角色个性，**对话风格必须符合人物档案中的设定**
-9. 每章至少 1 个读者预期外的转折（参考 chapter-guide.md「打破读者预期」）
-10. **人物行为必须严格符合提取的角色设定**（性格、缺陷、说话风格），角色不会做出不符合其性格的事
-11. 结尾按大纲中的悬念钩子设计（参考 hook-techniques.md「悬念钩子十三式」）
-7. 运行字数检查: python scripts/check_chapter_wordcount.py <文件路径>
-8. 深度润色（去除AI味）
-9. 再次字数检查
-10. 在 01-大纲.md 追加 300-500 字章节摘要
-11. 更新 status → "completed"，填入 wordCount
-12. 立即继续下一章
+工作方式：
+1. 逐章读取章节契约、人物档案、大纲对应规划、上一章摘要和下一章规划。
+2. 按章节 sprint 执行 draft -> humanize -> qa -> fix。
+3. 只创建或修改你负责的章节文件、qa/第XX章.md、summaries/第XX章.md、continuity/第XX章.md。
+4. 不直接修改 02-写作计划.json。
+5. 不直接修改 01-大纲.md 的章节摘要区。
+6. 每章 QA 通过后，在最终报告中列出章节编号、字数、QA 分数、阻塞项。
+7. 所有章节完成后生成本弧段摘要。
 
-## 重要约束
-- 不要使用 AskUserQuestion，不要向用户确认任何事
-- **每章开始前必须读取大纲**，严格按大纲的核心事件和悬念钩子创作
-- 字数必须达到 3000 字以上
-- 你负责的所有章节必须全部完成
-
-完成后报告: 各章编号、字数、是否通过字数检查
+重要约束：
+- 不要使用 AskUserQuestion，不要向用户确认任何事。
+- 每章必须达到 3000 字以上。
+- QA 失败时最多修复 3 轮。
+- 不要改写其他 Agent 负责的章节。
 ```
 
-**并发安全**：每个子 Agent 负责不重叠的章节批次，各自只更新自己负责的章节状态，不存在写入冲突。
+### 并发安全
+
+- 子 Agent 写入范围必须不重叠。
+- 全局状态只由主 Agent/State Keeper 合并。
+- 如果某章依赖前序弧段的结果，但前序弧段尚未完成，当前弧段应等待或使用前序弧段摘要。
 
 ---
 
 ## 4. Agent Teams 模式（writingMode: "agent-teams"）
 
-**Claude Code 特有模式**。需用户手动开启。通过 TeamCreate 创建写作团队，Agent 之间可以通讯协作。
+Agent Teams 模式仍遵守 Novel Harness 闭环，但可使用团队任务系统协调所有权。
 
 ### 主 Agent 流程
 
-```
 1. 使用 TeamCreate 创建写作团队
-2. 派生 3-5 个团队成员（使用 Agent 工具 + team_name 参数）
-3. 使用 TaskCreate 为每一章创建一个任务
-4. 团队成员各自:
-   a. 从 TaskList 读取可用任务
-   b. 使用 TaskUpdate 认领任务（设置 owner）
-   c. 执行「逐章创作流程」
-   d. 使用 TaskUpdate 标记任务完成
-   e. 回到 TaskList 认领下一个任务
-5. 所有任务完成后 → 关闭团队 → 进入第四阶段：自动校验
-```
+2. 创建角色：Story Planner、Chapter Writer、Evaluator、Continuity Editor、State Keeper
+3. 使用 TaskCreate 为每章创建任务，任务内容包含 `contractPath`
+4. 团队成员通过 TaskUpdate 认领章节
+5. Chapter Writer 完成 draft/humanize
+6. Evaluator 生成 QA 报告
+7. Fix Writer 根据失败项修复
+8. State Keeper 合并摘要和状态
+9. 所有章节完成后进入第四阶段
 
-### 团队成员 prompt 模板
+### 团队约束
 
-```
-你是一个小说创作团队成员。你的任务是创作分配给你的章节。
-
-## 项目信息
-- 项目路径: {projectPath}
-
-## 工作流程
-1. 从 TaskList 读取可用任务
-2. 使用 TaskUpdate 认领任务（设置 owner 为你的名字）
-3. **首先读取 {projectPath}/01-大纲.md**，找到该章节的规划信息（核心事件、承接上章、悬念钩子、出场人物、场景列表）
-3.5. **读取 {projectPath}/00-人物档案.md**，根据大纲中本章的「出场人物」，提取每个出场角色的：性格核心、致命缺陷、说话风格/口头禅、恐惧/弱项、与其他角色的关系
-4. 读取 02-写作计划.json，获取该章节状态
-5. 执行逐章创作流程:
-   a. 更新 status 为 "in_progress"
-   b. 创建章节文件，文件名格式：`第{XX}章-{章节标题}.md`（标题来自 `02-写作计划.json` 的 `title` 字段），基于大纲规划撰写正文（3000-5000字）
-   c. 按大纲中的章首引子类型，参考 hook-techniques.md「章首引子七式」创作章首引子（50-150字）
-   d. 正文开头第一段必须使用 chapter-guide.md 十种开头技巧之一
-   e. 全章至少 2 个张力波峰，连续 500 字以上无冲突必须引入新张力
-   f. 每章至少 30% 对话，对话必须有潜台词和角色个性，**对话风格必须符合人物档案中的设定**
-   g. 每章至少 1 个读者预期外的转折（参考 chapter-guide.md「打破读者预期」）
-   h. **人物行为必须严格符合提取的角色设定**（性格、缺陷、说话风格）
-   i. 结尾按大纲中的悬念钩子设计（参考 hook-techniques.md「悬念钩子十三式」）
-   e. 字数检查: python scripts/check_chapter_wordcount.py <文件路径>
-   f. 深度润色（去除AI味）
-   g. 再次字数检查
-   h. 在 01-大纲.md 追加章节摘要
-   i. 更新 status → "completed"，填入 wordCount
-6. 使用 TaskUpdate 标记任务完成
-7. 回到 TaskList 认领下一个任务
-
-## 重要约束
-- 不要使用 AskUserQuestion，不要向用户确认任何事
-- **每章开始前必须读取大纲**，严格按大纲的核心事件和悬念钩子创作
-- 字数必须达到 3000 字以上
-- 与其他团队成员通过 SendMessage 协调，避免写同一章节
-```
-
-**并发安全**：通过 TaskList 系统的内置所有权语义（owner 字段）和 Agent 间通讯避免冲突。
+- Task owner 是章节唯一写作者。
+- Evaluator 不修改章节正文。
+- State Keeper 是全局状态唯一写入者。
+- 所有角色必须按 [novel-harness-agents.md](../agents/novel-harness-agents.md) 的边界执行。

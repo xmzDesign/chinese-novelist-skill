@@ -4,11 +4,12 @@
 
 ---
 
-## 三大黄金法则
+## 黄金法则
 
 1. **展示而非讲述** - 用动作和对话表现，不要直接陈述
 2. **冲突驱动剧情** - 每章必须有冲突或转折
 3. **悬念承上启下** - 每章结尾必须留下钩子
+4. **黄金三章留住读者** - 前三章必须完成启示、转折、小高潮
 
 ---
 
@@ -90,21 +91,204 @@
 
 - **进度跟踪**：记录每章创作状态（pending/in_progress/completed/failed）
 - **写作模式**：记录用户选择的写作模式（serial/subagent-parallel/agent-teams）
+- **章节契约**：记录每章 `contractPath`，让写作和 QA 使用同一套验收标准
+- **QA 闭环**：记录 `qaReportPath`、`qaStatus`、`qualityScore`、`blockingIssues`
+- **文学质量**：记录 `antiAiStatus`、`literaryScore`、`aiTraceIssues`
+- **黄金三章**：记录 `goldenThree` 和前三章 `goldenThreeRole`
 - **中断续写**：Phase 0 读取 JSON 检测未完成项目，支持从断点继续
-- **校验依据**：Phase 4 基于 JSON 校验章节完成度和字数
-- **并行协调**（可选）：多 Agent 并行写作时通过 JSON 状态避免冲突
+- **校验依据**：Phase 4 基于 JSON 校验章节闭环、字数、QA 和总体验收
+- **并行协调**（可选）：多 Agent 并行写作时通过 owner、章节契约和状态避免冲突
 
 ### 与大纲的关系
 
 - `01-大纲.md`：章节规划（核心事件、悬念钩子、承接上章、出场人物、场景列表）+ 章节摘要（连贯性参考）
-- `02-写作计划.json`：章节状态、字数、重试次数、写作模式（机器可读的进度跟踪）
-- Phase 3 创作每章时必须读取 `01-大纲.md` 中对应章节的规划信息，作为创作依据
-- 两者严格对应：JSON 中的 `chapterNumber` 和 `title` 必须与大纲中的章节规划一致
+- `chapter-contracts/第XX章.md`：从大纲派生的章节验收契约，是 Writer 和 Evaluator 的共同标准
+- `02-写作计划.json`：章节状态、字数、QA、重试次数、写作模式（机器可读的进度跟踪）
+- Phase 3 创作每章时必须读取章节契约、`01-大纲.md` 对应章节规划、`00-人物档案.md` 和上一章摘要
+- 三者严格对应：JSON 中的 `chapterNumber`、`title`、`contractPath` 必须与大纲章节规划一致
+
+### 推荐 JSON v2 字段
+
+```json
+{
+  "version": 2,
+  "harness": {
+    "maxRevisionRounds": 3,
+    "passScore": 85,
+    "literaryPassScore": 80,
+    "goldenThreeLiteraryPassScore": 85,
+    "stateWriter": "orchestrator"
+  },
+  "goldenThree": {
+    "enabled": true,
+    "designPath": "03-黄金三章.md",
+    "chapters": [1, 2, 3]
+  },
+  "chapters": [
+    {
+      "chapterNumber": 1,
+      "title": "章节标题",
+      "filePath": "第01章-章节标题.md",
+      "contractPath": "chapter-contracts/第01章.md",
+      "qaReportPath": "qa/第01章.md",
+      "summaryPath": "summaries/第01章.md",
+      "continuityReportPath": "continuity/第01章.md",
+      "goldenThreeRole": "启示",
+      "status": "pending",
+      "owner": null,
+      "wordCount": null,
+      "wordCountPass": null,
+      "qaStatus": null,
+      "qualityScore": null,
+      "antiAiStatus": null,
+      "literaryScore": null,
+      "aiTraceIssues": [],
+      "blockingIssues": [],
+      "retryCount": 0
+    }
+  ]
+}
+```
+
+### 状态流转
+
+```text
+pending -> in_progress -> in_qa -> completed
+                         -> in_revision -> in_qa
+                         -> failed -> in_revision
+                         -> blocked
+```
+
+章节只有在以下条件同时满足时才能标记 `completed`：
+
+- 章节文件存在
+- 字数检查通过
+- QA 报告存在
+- `qaStatus == "pass"`
+- `qualityScore >= 85`
+- `antiAiStatus == "pass"`
+- 普通章节 `literaryScore >= 80`
+- 第1-3章 `literaryScore >= 85`
+- `blockingIssues` 为空
 
 ### JSON 损坏处理
 
 - JSON 解析失败时：提示用户，尝试从大纲的章节摘要区推断完成进度
 - 章节状态丢失时：通过文件存在性和字数脚本重建状态
+
+---
+
+## 文学质量与反 AI 系统
+
+参考：[literary-quality-gate.md](../guides/literary-quality-gate.md)
+
+目标：
+
+- 不依赖外部 AI 检测器
+- 用文本证据判断 AI 痕迹
+- 用文学质量评分约束最低可读性
+- 用 A 类问题编号支持定向修复
+
+核心字段：
+
+| 字段 | 含义 |
+|---|---|
+| `antiAiStatus` | `pass` / `fail`，任一严重 AI 痕迹出现即 fail |
+| `literaryScore` | 0-100，普通章节 >=80，第1-3章 >=85 |
+| `aiTraceIssues` | A 类问题编号，如 `A-01`、`A-02` |
+
+反 AI 一票否决项：
+
+- 人物说话同质化
+- 情绪全靠概括
+- 空泛形容堆砌
+- 四字套话过多
+- 段落节奏模板化
+- 解释替代表演
+- 低级连续性错误
+- 爽点或冲突缺席
+
+章节只有 `antiAiStatus == "pass"` 且 `literaryScore` 达标时，才允许 `completed`。
+
+---
+
+## 黄金三章系统
+
+存储位置：`03-黄金三章.md`
+
+参考：[golden-three-chapters.md](../guides/golden-three-chapters.md)
+
+作用：
+
+- 在 Phase 1 收集主角共鸣特性
+- 在 Phase 2 设计前三章的启示、转折、小高潮
+- 在 Phase 3 对前三章写作和 QA 加专项门禁
+- 在 Phase 4 做开篇留存总验收
+
+前三章职责：
+
+| 章节 | 角色 | 必须完成 |
+|---|---|---|
+| 第1章 | 启示 | 主角共鸣、当前生活、长钉子、未来展望 |
+| 第2章 | 转折 | 引爆长钉子、重大损失、不得不行动 |
+| 第3章 | 小高潮 | 主动出手、有限胜利、更大期待 |
+
+第1-3章如果黄金三章专项失败，不得标记 `completed`。
+
+---
+
+## 章节契约与 QA 系统
+
+### 章节契约
+
+存储位置：`chapter-contracts/第XX章.md`
+
+模板：[chapter-contract-template.md](../guides/chapter-contract-template.md)
+
+用途：
+
+- 把大纲规划转成可验收标准
+- 约束 Chapter Writer 不偏离主线
+- 约束 Evaluator 只按契约评分
+- 支持失败项定向修复
+
+### QA 报告
+
+存储位置：`qa/第XX章.md`
+
+模板：[qa-report-template.md](../guides/qa-report-template.md)
+
+评分：
+
+| 维度 | 分值 |
+|---|---:|
+| 字数与结构 | 10 |
+| 大纲履约 | 20 |
+| 承接与连贯 | 15 |
+| 人物一致性 | 15 |
+| 冲突与节奏 | 10 |
+| 对话质量 | 10 |
+| 结尾钩子 | 10 |
+| 去 AI 味与文字质感 | 10 |
+
+判定：
+
+- `PASS`：总分 >= 85，且无阻塞项
+- `PARTIAL`：总分 70-84，或存在非阻塞失败项
+- `FAIL`：总分 < 70，或存在任一阻塞项
+
+Evaluator 必须给出证据和修复建议，不能只输出主观评价。
+
+---
+
+## 进度收口系统
+
+每章完成后刷新：
+
+- `progress/latest.txt`：最近完成章节、QA 分数、阻塞项、下一章
+- `progress/YYYY-MM.md`：月度追加记录
+
+进度快照用于中断续写和并行写作交接。快照必须短，不替代章节摘要。
 
 ---
 
@@ -128,6 +312,22 @@ python scripts/check_chapter_wordcount.py ./chinese-novelist/项目文件夹/第
 | 阶段 | 用途 |
 |------|------|
 | Phase 3（逐章创作） | 撰写后检查单章字数，低于3000字必须扩充 |
-| Phase 4（自动校验） | 批量检查所有章节字数，不合格章节自动重写 |
+| Phase 4（最终总验收） | 批量复查所有章节字数，发现问题回到章节 sprint |
 
 低于3000字的章节必须使用 [content-expansion.md](../guides/content-expansion.md) 的扩充技巧进行扩充。
+
+## 项目结构校验脚本
+
+使用 `scripts/validate_novel_project.py` 检查轻量 Novel Harness 产物：
+
+```bash
+python scripts/validate_novel_project.py ./chinese-novelist/项目文件夹
+python scripts/validate_novel_project.py ./chinese-novelist/项目文件夹 --json
+```
+
+检查内容：
+
+- `02-写作计划.json` 是否存在且可解析
+- 每章章节文件、章节契约、QA 报告、摘要路径是否符合状态
+- 已完成章节是否字数达标、QA 通过、无阻塞项
+- 项目目录是否包含 `chapter-contracts/`、`qa/`、`summaries/`、`continuity/`、`progress/`
