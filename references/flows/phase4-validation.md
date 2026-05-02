@@ -34,11 +34,18 @@ Phase 4 不再把所有问题都留到最后补救。章节级字数、人物一
 7. `status == "completed"` 的章节必须没有阻塞项
 8. `antiAiStatus == "pass"`，否则不得 completed
 9. 普通章节 `literaryScore >= 80`，第1-3章 `literaryScore >= 85`
+10. `readerHookStatus == "pass"`，否则不得 completed
+11. 普通章节 `readerHookScore >= 80`，第1-3章 `readerHookScore >= 85`
+12. `memorableMoment` 和 `chapterTurnPageHook` 非空
+13. `reviewRoundCount >= 3`
+14. `repairRequired == false`
+15. `needsRecheck == false`
+16. `lastFailureCodes` 为空
 
 如果发现章节未完成闭环：
 
-- `retryCount < 3`：回到 Phase 3 对该章执行 fix loop
-- `retryCount >= 3`：标记 `blocked`，写入最终报告
+- `repairRound < maxAutoRepairRounds`：回到 Phase 3 对该章执行自动修复复检循环
+- `repairRound >= maxAutoRepairRounds`：标记 `blocked`，写入最终报告
 
 ---
 
@@ -66,6 +73,14 @@ Phase 4 不再把所有问题都留到最后补救。章节级字数、人物一
 | 主题回应 | 结局或阶段性收束回应核心主题 |
 | 黄金三章 | 前三章完成启示、转折、小高潮，并引出后续期待 |
 | 文学质量 | 全书没有系统性 AI 腔、台词同质、空泛抒情和模板化节奏 |
+| 追读力 | 每章有亮点、局部爽点、追读钩子和合适的幽默/反差 |
+
+总验收检测规则：
+
+1. 全书连续性、黄金三章、文学质量和追读力总评至少重复 3 轮
+2. 每轮必须独立给出问题清单和风险等级
+3. 最终报告采用保守聚合：任一轮发现阻塞级问题，最终状态不得为纯 `"completed"`
+4. 三轮意见不一致时，按风险更高的一轮处理，并在 `qa/final-report.md` 标注分歧
 
 产物：
 
@@ -86,15 +101,22 @@ Phase 4 不再把所有问题都留到最后补救。章节级字数、人物一
 
 ## 4. 自动修复规则
 
+参考：[auto-repair-loop.md](../guides/auto-repair-loop.md)
+
 对总验收发现的问题：
 
 | 问题类型 | 动作 |
 |---|---|
 | 缺章节文件、缺契约、缺 QA 报告 | 回到 Phase 3 补齐 |
 | 字数不足 | 回到 Phase 3 定向扩写 |
-| QA 未通过且 retry < 3 | 回到 Phase 3 fix loop |
+| QA 未通过且 repairRound < maxAutoRepairRounds | 回到 Phase 3 自动修复复检循环 |
 | 反 AI 门禁失败 | 回到 Phase 3 按 A 类失败项定向修复 |
 | 文学质量分不足 | 回到 Phase 3 修复低分维度 |
+| 读者钩子门禁失败 | 回到 Phase 3 按 R 类失败项定向修复 |
+| 检测轮次不足 3 轮 | 回到 Phase 3 重新读取正文并补足 QA 检测轮次 |
+| `repairRequired == true` | 回到 Phase 3 按 `lastFailureCodes` 修复 |
+| `needsRecheck == true` | 回到 Phase 3 直接重新三轮检测 |
+| `lastFailureCodes` 非空但章节 completed | 撤销 completed，回到 Phase 3 复检 |
 | 时间线/伏笔/人物弧线轻微矛盾 | 修订对应章节摘要和 continuity 文件；必要时定向修章节 |
 | 关键人物或主线严重矛盾 | 标记 blocked，最终报告说明风险和建议 |
 | 黄金三章专项失败 | 第1-3章必须回到 Phase 3 修复，超过 3 轮才可标记风险 |
@@ -102,7 +124,33 @@ Phase 4 不再把所有问题都留到最后补救。章节级字数、人物一
 循环规则：
 
 - 最多执行 3 轮总验收-修复循环
+- 每轮修复后必须重新执行章节 QA 的 3 轮检测，再重新执行全书总验收
+- 章节复检通过后，必须清空 `repairRequired`、`needsRecheck`、`lastFailureCodes` 和 `blockingIssues`
 - 超过 3 轮仍未解决的问题不阻塞报告生成，但必须明确标注
+
+总验收-修复循环伪代码：
+
+```text
+validationRound = 0
+
+WHILE 总验收未通过 AND validationRound < finalValidationRounds:
+    validationRound += 1
+    汇总失败项，写入 qa/final-report.md
+
+    FOR each failed chapter:
+        IF chapter.repairRound >= maxAutoRepairRounds:
+            chapter.status = "blocked"
+            CONTINUE
+
+        chapter.status = "in_revision"
+        chapter.repairRequired = true
+        chapter.lastFailureCodes = failure codes
+        回到 Phase 3 自动修复
+        修复后重新执行章节 QA 至少 3 轮
+
+    重新运行 validate_novel_project.py
+    重新执行全书连续性、黄金三章、文学质量和追读力 3 轮总验收
+```
 
 ---
 
@@ -124,7 +172,10 @@ Phase 4 不再把所有问题都留到最后补救。章节级字数、人物一
 总字数：[X] 字
 平均 QA 分：[X]
 平均文学质量分：[X]
+平均追读力分：[X]
 反 AI 门禁：全部通过 / 存在风险
+读者钩子门禁：全部通过 / 存在风险
+自动修复复检：已完成 / 存在待复检风险
 
 关键产物：
 - 项目文件夹：./chinese-novelist/[timestamp]-[小说名称]/

@@ -18,7 +18,7 @@
    - `summaries/`：每章摘要，供后续章节承接
    - `continuity/`：时间线、伏笔表、人物弧线等全书级连续性材料
    - `progress/`：`latest.txt` 和月度进度日志
-6. **生成章节契约**：为每一章创建 `chapter-contracts/第XX章.md`。契约必须从 `01-大纲.md` 的章节规划派生，包含核心事件、承接上章、出场人物、场景列表、章首引子类型、结尾钩子、伏笔要求、验收标准和评分量表，并引用 [literary-quality-gate.md](../guides/literary-quality-gate.md)。第1-3章必须额外填充“黄金三章专项”。
+6. **生成章节契约**：为每一章创建 `chapter-contracts/第XX章.md`。契约必须从 `01-大纲.md` 的章节规划派生，包含核心事件、承接上章、出场人物、场景列表、章首引子类型、结尾钩子、伏笔要求、验收标准、自动修复复检规则和评分量表，并引用 [literary-quality-gate.md](../guides/literary-quality-gate.md)、[reader-hook-gate.md](../guides/reader-hook-gate.md)、[auto-repair-loop.md](../guides/auto-repair-loop.md)。第1-3章必须额外填充“黄金三章专项”。
 7. **生成写作计划**：创建 `02-写作计划.json`，基于大纲和章节契约填充，结构如下：
    ```json
    {
@@ -34,9 +34,16 @@
      "writingMode": "[serial|subagent-parallel|agent-teams]",
      "harness": {
        "maxRevisionRounds": 3,
+       "qaReviewRounds": 3,
+       "requiredReviewPasses": 3,
+       "finalValidationRounds": 3,
+       "autoRepairEnabled": true,
+       "maxAutoRepairRounds": 3,
        "passScore": 85,
        "literaryPassScore": 80,
        "goldenThreeLiteraryPassScore": 85,
+       "readerHookPassScore": 80,
+       "goldenThreeReaderHookPassScore": 85,
        "stateWriter": "orchestrator"
      },
      "goldenThree": {
@@ -63,7 +70,21 @@
          "antiAiStatus": null,
          "literaryScore": null,
          "aiTraceIssues": [],
+         "readerHookStatus": null,
+         "readerHookScore": null,
+         "memorableMoment": "",
+         "chapterTurnPageHook": "",
+         "humorBeat": "",
+         "highlightIssues": [],
+         "reviewRoundCount": 0,
+         "requiredReviewPasses": 3,
          "blockingIssues": [],
+         "repairRequired": false,
+         "needsRecheck": false,
+         "lastFailureCodes": [],
+         "repairRound": 0,
+         "repairHistory": [],
+         "lastRepairAt": null,
          "retryCount": 0
        }
      ]

@@ -6,8 +6,14 @@
 - **分数**：[0-100]
 - **反 AI 门禁**：pass / fail
 - **文学质量分**：[0-100]
+- **读者钩子门禁**：pass / fail
+- **追读力分**：[0-100]
+- **检测轮次**：[至少3]
 - **是否可标记 completed**：是 / 否
 - **修复轮次**：[0-3]
+- **是否需要修复**：是 / 否
+- **是否等待复检**：是 / 否
+- **最近失败项**：[A-XX/R-XX/B-XX/G-XX/C-XX，若无写“无”]
 - **检查时间**：[ISO时间]
 
 ## 输入文件
@@ -63,6 +69,43 @@ antiAiStatus：pass / fail
 
 literaryScore：[0-100]
 
+## 读者钩子门禁
+
+> 参考 [reader-hook-gate.md](reader-hook-gate.md)。任一严重追读问题出现时，`readerHookStatus` 必须为 `fail`。
+
+| 编号 | 类型 | 状态 | 位置或证据 | 为什么不吸引人 | 修复建议 |
+|---|---|---|---|---|---|
+| R-01 | 开场抓力不足 | PASS/FAIL | | | |
+| R-02 | 本章没有可记忆亮点 | PASS/FAIL | | | |
+| R-03 | 幽默缺席或幽默破坏基调 | PASS/FAIL | | | |
+| R-04 | 主角魅力没有展示出来 | PASS/FAIL | | | |
+| R-05 | 爽点只铺垫没有兑现 | PASS/FAIL | | | |
+| R-06 | 结尾追读钩子不成立 | PASS/FAIL | | | |
+| R-07 | 章节中段停滞 | PASS/FAIL | | | |
+| R-08 | 反转或冲突太常规 | PASS/FAIL | | | |
+
+readerHookStatus：pass / fail
+
+## 追读力评分
+
+| 维度 | 分数 | 证据 |
+|---|---:|---|
+| 开场抓力 | /15 | |
+| 章节亮点 | /20 | |
+| 幽默与反差 | /10 | |
+| 主角魅力 | /15 | |
+| 爽点兑现 | /15 | |
+| 期待升级 | /15 | |
+| 阅读顺滑 | /10 | |
+
+readerHookScore：[0-100]
+
+## 章节记忆点
+
+- **memorableMoment**：[本章最值得读者记住的桥段/台词/反转/爽点]
+- **chapterTurnPageHook**：[读者读完本章后想继续看的具体原因]
+- **humorBeat**：[本章幽默或反差点；严肃题材可写“低频/克制”，但必须说明调味方式]
+
 ## 黄金三章专项（第1-3章必填）
 
 > 第4章以后写“不适用”。
@@ -77,6 +120,43 @@ literaryScore：[0-100]
 | 有限胜利和更大期待并存 | PASS/PARTIAL/FAIL/不适用 | |
 
 黄金三章专项结论：PASS / FAIL / 不适用
+
+## 三轮检测记录
+
+> 为降低模型差异，所有检测至少重复 3 轮。每轮必须独立给出结论；最终结论采用保守聚合：任一轮出现阻塞失败，最终不得 PASS；分数采用三轮最低分。
+
+| 轮次 | QA状态 | antiAiStatus | literaryScore | readerHookStatus | readerHookScore | 黄金三章 | 阻塞项 |
+|---|---|---|---:|---|---:|---|---|
+| 1 | PASS/PARTIAL/FAIL | pass/fail | | pass/fail | | PASS/FAIL/不适用 | |
+| 2 | PASS/PARTIAL/FAIL | pass/fail | | pass/fail | | PASS/FAIL/不适用 | |
+| 3 | PASS/PARTIAL/FAIL | pass/fail | | pass/fail | | PASS/FAIL/不适用 | |
+
+最终聚合：
+- **reviewRoundCount**：3
+- **requiredReviewPasses**：3
+- **lowestLiteraryScore**：[三轮最低文学质量分]
+- **lowestReaderHookScore**：[三轮最低追读力分]
+- **consensusStatus**：pass / fail
+
+## 自动修复复检状态
+
+> 参考 [auto-repair-loop.md](auto-repair-loop.md)。只要本报告不是 PASS，就必须生成失败项和修复指令。修复完成后，本报告结论不得被直接改成 PASS，必须重新三轮检测。
+
+```json
+{
+  "repairRequired": true,
+  "needsRecheck": false,
+  "repairRound": 0,
+  "lastFailureCodes": ["A-XX", "R-XX", "B-XX"]
+}
+```
+
+状态写入规则：
+
+- 初次 QA 失败：`repairRequired: true`，`needsRecheck: false`，写入 `lastFailureCodes`。
+- 修复完成：`repairRequired: true`，`needsRecheck: true`，旧检测分数作废，`reviewRoundCount: 0`。
+- 复检通过：`repairRequired: false`，`needsRecheck: false`，`lastFailureCodes: []`。
+- 复检失败：保留新的失败项，继续下一轮修复，直到达到最大修复轮次。
 
 ## 阻塞项
 
@@ -106,8 +186,15 @@ literaryScore：[0-100]
 1. [失败项编号]：[具体修复目标]
 2. [失败项编号]：[具体修复目标]
 
+修复后动作：
+
+1. 将旧 QA 结论作废，不得沿用旧分数。
+2. 将 `needsRecheck` 设为 `true`。
+3. 重新读取修复后的章节正文。
+4. 重新执行至少 3 轮检测。
+
 ## 复评记录
 
-| 轮次 | 修复摘要 | 新分数 | 结果 |
-|---|---|---:|---|
-| 1 | | | |
+| 修复轮次 | 修复摘要 | 重新检测轮次 | 最低文学分 | 最低追读分 | 结果 |
+|---|---|---:|---:|---:|---|
+| 1 | | 3 | | | PASS/FAIL |

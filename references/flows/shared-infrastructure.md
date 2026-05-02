@@ -10,6 +10,7 @@
 2. **冲突驱动剧情** - 每章必须有冲突或转折
 3. **悬念承上启下** - 每章结尾必须留下钩子
 4. **黄金三章留住读者** - 前三章必须完成启示、转折、小高潮
+5. **失败自动复检** - 验收失败必须定向修复，修复后重新三轮检测
 
 ---
 
@@ -94,6 +95,9 @@
 - **章节契约**：记录每章 `contractPath`，让写作和 QA 使用同一套验收标准
 - **QA 闭环**：记录 `qaReportPath`、`qaStatus`、`qualityScore`、`blockingIssues`
 - **文学质量**：记录 `antiAiStatus`、`literaryScore`、`aiTraceIssues`
+- **追读力**：记录 `readerHookStatus`、`readerHookScore`、`memorableMoment`、`chapterTurnPageHook`、`highlightIssues`
+- **三轮检测**：记录 `reviewRoundCount` 和 `requiredReviewPasses`
+- **自动修复复检**：记录 `repairRequired`、`needsRecheck`、`lastFailureCodes`、`repairRound`、`repairHistory`
 - **黄金三章**：记录 `goldenThree` 和前三章 `goldenThreeRole`
 - **中断续写**：Phase 0 读取 JSON 检测未完成项目，支持从断点继续
 - **校验依据**：Phase 4 基于 JSON 校验章节闭环、字数、QA 和总体验收
@@ -114,9 +118,16 @@
   "version": 2,
   "harness": {
     "maxRevisionRounds": 3,
+    "qaReviewRounds": 3,
+    "requiredReviewPasses": 3,
+    "finalValidationRounds": 3,
+    "autoRepairEnabled": true,
+    "maxAutoRepairRounds": 3,
     "passScore": 85,
     "literaryPassScore": 80,
     "goldenThreeLiteraryPassScore": 85,
+    "readerHookPassScore": 80,
+    "goldenThreeReaderHookPassScore": 85,
     "stateWriter": "orchestrator"
   },
   "goldenThree": {
@@ -143,7 +154,21 @@
       "antiAiStatus": null,
       "literaryScore": null,
       "aiTraceIssues": [],
+      "readerHookStatus": null,
+      "readerHookScore": null,
+      "memorableMoment": "",
+      "chapterTurnPageHook": "",
+      "humorBeat": "",
+      "highlightIssues": [],
+      "reviewRoundCount": 0,
+      "requiredReviewPasses": 3,
       "blockingIssues": [],
+      "repairRequired": false,
+      "needsRecheck": false,
+      "lastFailureCodes": [],
+      "repairRound": 0,
+      "repairHistory": [],
+      "lastRepairAt": null,
       "retryCount": 0
     }
   ]
@@ -169,7 +194,17 @@ pending -> in_progress -> in_qa -> completed
 - `antiAiStatus == "pass"`
 - 普通章节 `literaryScore >= 80`
 - 第1-3章 `literaryScore >= 85`
+- `readerHookStatus == "pass"`
+- 普通章节 `readerHookScore >= 80`
+- 第1-3章 `readerHookScore >= 85`
+- `memorableMoment` 非空
+- `chapterTurnPageHook` 非空
+- `highlightIssues` 为空
+- `reviewRoundCount >= 3`
 - `blockingIssues` 为空
+- `repairRequired == false`
+- `needsRecheck == false`
+- `lastFailureCodes` 为空
 
 ### JSON 损坏处理
 
@@ -209,6 +244,80 @@ pending -> in_progress -> in_qa -> completed
 - 爽点或冲突缺席
 
 章节只有 `antiAiStatus == "pass"` 且 `literaryScore` 达标时，才允许 `completed`。
+
+---
+
+## 读者钩子与追读系统
+
+参考：[reader-hook-gate.md](../guides/reader-hook-gate.md)
+
+目标：
+
+- 每章都有能被读者记住的亮点
+- 在题材允许范围内加入幽默、反差或轻松调味
+- 每章至少有一次局部爽点兑现
+- 结尾有明确追读理由
+
+核心字段：
+
+| 字段 | 含义 |
+|---|---|
+| `readerHookStatus` | `pass` / `fail` |
+| `readerHookScore` | 0-100，普通章节 >=80，第1-3章 >=85 |
+| `memorableMoment` | 本章最值得记住的桥段、台词、反转或爽点 |
+| `chapterTurnPageHook` | 本章结尾驱动读者继续看的具体理由 |
+| `humorBeat` | 本章幽默、反差、尴尬、嘴损或轻松调味 |
+| `highlightIssues` | R 类问题编号，如 `R-01`、`R-02` |
+
+章节只有 `readerHookStatus == "pass"`、`readerHookScore` 达标、存在 `memorableMoment` 和 `chapterTurnPageHook` 时，才允许 `completed`。
+
+---
+
+## 三轮检测系统
+
+为降低不同模型、不同轮次的主观差异，所有章节 QA 检测至少重复 3 轮。
+
+规则：
+
+- 每轮都必须独立检查：章节契约、反 AI、文学质量、读者钩子、黄金三章（如适用）
+- 最终结论采用保守聚合
+- 任一轮出现阻塞失败，最终不得 `PASS`
+- 文学质量分和追读力分采用三轮最低分
+- `reviewRoundCount < 3` 的章节不得标记 `completed`
+- Phase 4 的全书总验收也至少重复 3 轮，并采用保守聚合
+
+---
+
+## 自动修复复检系统
+
+参考：[auto-repair-loop.md](../guides/auto-repair-loop.md)
+
+目标：
+
+- 验收失败后自动生成可执行修复任务
+- 修复后作废旧检测结论，避免沿用旧分数
+- 修复完成后重新执行至少 3 轮检测
+- 多轮失败时保留失败项和修复历史，便于最终报告解释风险
+
+核心字段：
+
+| 字段 | 含义 |
+|---|---|
+| `repairRequired` | 当前是否仍有失败项需要修复 |
+| `needsRecheck` | 修复已完成，是否等待重新三轮检测 |
+| `lastFailureCodes` | 最近一次失败项编号，如 `B-01`、`A-02`、`R-04`、`G-01`、`C-03` |
+| `repairRound` | 已执行的自动修复轮次 |
+| `repairHistory` | 每轮失败项、修复摘要、复检结果 |
+| `lastRepairAt` | 最近一次修复完成时间 |
+
+循环规则：
+
+1. 任一验收失败时，章节进入 `failed` 或 `in_revision`，写入 `repairRequired: true` 和 `lastFailureCodes`。
+2. Fix Writer 只按 `lastFailureCodes` 修复，修复后进入 `in_qa`，写入 `needsRecheck: true`。
+3. State Keeper 必须将旧的 `qaStatus`、`qualityScore`、`antiAiStatus`、`literaryScore`、`readerHookStatus`、`readerHookScore`、`reviewRoundCount` 置空或归零。
+4. Evaluator 重新读取修复后的正文，重新执行至少 3 轮检测。
+5. 复检通过后，清空 `repairRequired`、`needsRecheck`、`lastFailureCodes` 和 `blockingIssues`，才允许 `completed`。
+6. `repairRound >= maxAutoRepairRounds` 且仍失败时，章节标记 `blocked`。
 
 ---
 
@@ -279,6 +388,8 @@ pending -> in_progress -> in_qa -> completed
 
 Evaluator 必须给出证据和修复建议，不能只输出主观评价。
 
+QA 未通过时，报告必须生成“修复指令”和失败项编号。修复完成后，必须按 [auto-repair-loop.md](../guides/auto-repair-loop.md) 重新检测，不允许只更新报告结论。
+
 ---
 
 ## 进度收口系统
@@ -329,5 +440,5 @@ python scripts/validate_novel_project.py ./chinese-novelist/项目文件夹 --js
 
 - `02-写作计划.json` 是否存在且可解析
 - 每章章节文件、章节契约、QA 报告、摘要路径是否符合状态
-- 已完成章节是否字数达标、QA 通过、无阻塞项
+- 已完成章节是否字数达标、QA 通过、无阻塞项、无待修复或待复检状态
 - 项目目录是否包含 `chapter-contracts/`、`qa/`、`summaries/`、`continuity/`、`progress/`

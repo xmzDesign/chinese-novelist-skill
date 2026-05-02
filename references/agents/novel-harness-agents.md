@@ -8,6 +8,7 @@
 - 读取 `02-写作计划.json`，选择下一个可执行章节。
 - 认领章节，更新 `owner`、`status`、`updatedAt`。
 - 控制写作、QA、修复、收口的顺序。
+- 如果验收失败，自动触发修复复检循环，不向用户确认。
 - 在并行模式下只分配不重叠的故事弧或章节段。
 
 只允许 Orchestrator 或 State Keeper 写入全局状态文件：
@@ -70,6 +71,9 @@
 职责：
 - 只按章节契约、用户特殊要求和质量量表评分。
 - 执行 [literary-quality-gate.md](../guides/literary-quality-gate.md) 的反 AI 门禁和文学质量评分。
+- 执行 [reader-hook-gate.md](../guides/reader-hook-gate.md) 的追读力、幽默、亮点和章节钩子评分。
+- 执行 [auto-repair-loop.md](../guides/auto-repair-loop.md) 的失败项编号和复检规则。
+- 所有检测至少执行 3 轮，最终按保守聚合放行。
 - 必须给出证据摘录或位置说明。
 - 对失败项输出可执行修复指令。
 
@@ -87,8 +91,10 @@
 职责：
 - 只读取 QA 报告中的失败项并修复。
 - 对 `A-XX` 反 AI 问题做定向修复，不做泛泛润色。
+- 对 `R-XX` 追读力问题做定向修复，不靠硬塞段子补救。
 - 保留已通过的核心事件、承接关系和结尾钩子。
 - 每轮修复后交回 Evaluator 复评。
+- 修复完成后不得自行标记通过，必须等待 Evaluator 重新三轮检测。
 
 限制：
 - 同一章节最多 3 轮修复。
@@ -99,9 +105,11 @@
 职责：
 - 合并章节摘要草稿到 `summaries/` 和 `01-大纲.md`。
 - 更新 `02-写作计划.json` 的 QA 字段、字数、状态和 retry 计数。
+- QA 失败时写入 `repairRequired`、`lastFailureCodes`、`repairRound` 和 `repairHistory`。
+- 修复完成后清空旧 QA 结论，写入 `needsRecheck: true`，并把 `reviewRoundCount` 重置为 0。
 - 写入 `progress/latest.txt` 和月度进度日志。
 
 状态写入规则：
-- `qaStatus == "pass"`、`antiAiStatus == "pass"`、`literaryScore` 达标且无阻塞项时，才可将章节标记为 `completed`。
+- `qaStatus == "pass"`、`antiAiStatus == "pass"`、`literaryScore` 达标、`readerHookStatus == "pass"`、`readerHookScore` 达标、`reviewRoundCount >= 3`、`repairRequired == false`、`needsRecheck == false`、`lastFailureCodes` 为空且无阻塞项时，才可将章节标记为 `completed`。
 - `qaStatus == "fail"` 或存在阻塞项时，章节保持 `failed` 或 `in_revision`。
 - 超过 3 轮仍失败时，记录为 `blocked`，进入最终报告。

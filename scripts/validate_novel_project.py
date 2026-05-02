@@ -4,7 +4,7 @@
 Novel Harness 项目结构校验脚本
 
 检查小说项目是否具备章节契约、QA 报告、摘要、连续性材料和写作计划状态。
-该脚本只检查文学质量字段是否达标，不直接判断正文文学质量。
+该脚本只检查文学质量、追读力和自动修复复检字段是否达标，不直接判断正文文学质量。
 """
 
 import argparse
@@ -113,6 +113,10 @@ def check_chapter_record(
     pass_score: int,
     literary_pass_score: int,
     golden_three_literary_pass_score: int,
+    reader_hook_pass_score: int,
+    golden_three_reader_hook_pass_score: int,
+    required_review_passes: int,
+    max_auto_repair_rounds: int,
     issues: list[dict[str, str]],
 ) -> dict[str, Any]:
     """检查单章记录与相关文件。"""
@@ -129,6 +133,13 @@ def check_chapter_record(
         "qualityScore": chapter.get("qualityScore"),
         "antiAiStatus": chapter.get("antiAiStatus"),
         "literaryScore": chapter.get("literaryScore"),
+        "readerHookStatus": chapter.get("readerHookStatus"),
+        "readerHookScore": chapter.get("readerHookScore"),
+        "reviewRoundCount": chapter.get("reviewRoundCount"),
+        "repairRequired": chapter.get("repairRequired"),
+        "needsRecheck": chapter.get("needsRecheck"),
+        "lastFailureCodes": chapter.get("lastFailureCodes"),
+        "repairRound": chapter.get("repairRound", chapter.get("retryCount")),
     }
 
     if status not in VALID_STATUSES:
@@ -169,6 +180,13 @@ def check_chapter_record(
         elif not qa_path.exists():
             add_issue(issues, "error", "missing-qa-report", f"{label} 缺少 QA 报告: {qa_path}")
 
+    if status in {"in_revision", "failed"}:
+        failure_codes = chapter.get("lastFailureCodes") or []
+        if chapter.get("repairRequired") is not True:
+            add_issue(issues, "warn", "repair-required-not-set", f"{label} 处于 {status} 但 repairRequired 未设为 true")
+        if not failure_codes:
+            add_issue(issues, "warn", "missing-failure-codes", f"{label} 处于 {status} 但缺少 lastFailureCodes")
+
     if status == "completed":
         blocking_issues = chapter.get("blockingIssues") or []
         quality_score = chapter.get("qualityScore")
@@ -176,6 +194,14 @@ def check_chapter_record(
         anti_ai_status = chapter.get("antiAiStatus")
         literary_score = chapter.get("literaryScore")
         literary_threshold = golden_three_literary_pass_score if number in {1, 2, 3} else literary_pass_score
+        reader_hook_status = chapter.get("readerHookStatus")
+        reader_hook_score = chapter.get("readerHookScore")
+        reader_hook_threshold = golden_three_reader_hook_pass_score if number in {1, 2, 3} else reader_hook_pass_score
+        review_round_count = chapter.get("reviewRoundCount")
+        repair_required = chapter.get("repairRequired")
+        needs_recheck = chapter.get("needsRecheck")
+        last_failure_codes = chapter.get("lastFailureCodes") or []
+        repair_round = chapter.get("repairRound", chapter.get("retryCount", 0))
 
         if file_path is None or not file_path.exists():
             add_issue(issues, "error", "completed-without-file", f"{label} 已 completed 但章节文件不存在")
@@ -203,8 +229,54 @@ def check_chapter_record(
         if ai_trace_issues:
             add_issue(issues, "error", "completed-with-ai-traces", f"{label} 已 completed 但仍有 AI 痕迹问题")
 
+        if reader_hook_status != "pass":
+            add_issue(issues, "error", "completed-reader-hook-not-pass", f"{label} 已 completed 但 readerHookStatus 不是 pass")
+
+        if not isinstance(reader_hook_score, (int, float)) or reader_hook_score < reader_hook_threshold:
+            add_issue(
+                issues,
+                "error",
+                "completed-reader-hook-score-low",
+                f"{label} 已 completed 但 readerHookScore 低于 {reader_hook_threshold}",
+            )
+
+        if not chapter.get("memorableMoment"):
+            add_issue(issues, "error", "completed-missing-memorable-moment", f"{label} 已 completed 但缺少 memorableMoment")
+
+        if not chapter.get("chapterTurnPageHook"):
+            add_issue(issues, "error", "completed-missing-turn-page-hook", f"{label} 已 completed 但缺少 chapterTurnPageHook")
+
+        highlight_issues = chapter.get("highlightIssues") or []
+        if highlight_issues:
+            add_issue(issues, "error", "completed-with-highlight-issues", f"{label} 已 completed 但仍有追读力问题")
+
+        if not isinstance(review_round_count, int) or review_round_count < required_review_passes:
+            add_issue(
+                issues,
+                "error",
+                "completed-review-rounds-insufficient",
+                f"{label} 已 completed 但检测轮次少于 {required_review_passes}",
+            )
+
         if blocking_issues:
             add_issue(issues, "error", "completed-with-blockers", f"{label} 已 completed 但仍有阻塞项")
+
+        if repair_required:
+            add_issue(issues, "error", "completed-repair-required", f"{label} 已 completed 但 repairRequired 仍为 true")
+
+        if needs_recheck:
+            add_issue(issues, "error", "completed-needs-recheck", f"{label} 已 completed 但 needsRecheck 仍为 true")
+
+        if last_failure_codes:
+            add_issue(issues, "error", "completed-with-failure-codes", f"{label} 已 completed 但 lastFailureCodes 未清空")
+
+        if isinstance(repair_round, int) and repair_round > max_auto_repair_rounds:
+            add_issue(
+                issues,
+                "error",
+                "completed-repair-rounds-exceeded",
+                f"{label} 已 completed 但 repairRound 超过 {max_auto_repair_rounds}",
+            )
 
         if number in {1, 2, 3} and chapter.get("goldenThreeRole") not in {"启示", "转折", "小高潮"}:
             add_issue(issues, "error", "completed-missing-golden-role", f"{label} 已 completed 但缺少黄金三章角色")
@@ -236,6 +308,10 @@ def validate_project(project_dir: Path) -> dict[str, Any]:
     pass_score = int(harness.get("passScore", 85))
     literary_pass_score = int(harness.get("literaryPassScore", 80))
     golden_three_literary_pass_score = int(harness.get("goldenThreeLiteraryPassScore", 85))
+    reader_hook_pass_score = int(harness.get("readerHookPassScore", 80))
+    golden_three_reader_hook_pass_score = int(harness.get("goldenThreeReaderHookPassScore", 85))
+    required_review_passes = int(harness.get("requiredReviewPasses", 3))
+    max_auto_repair_rounds = int(harness.get("maxAutoRepairRounds", harness.get("maxRevisionRounds", 3)))
     chapters = plan.get("chapters")
 
     if not isinstance(chapters, list):
@@ -252,6 +328,10 @@ def validate_project(project_dir: Path) -> dict[str, Any]:
             pass_score,
             literary_pass_score,
             golden_three_literary_pass_score,
+            reader_hook_pass_score,
+            golden_three_reader_hook_pass_score,
+            required_review_passes,
+            max_auto_repair_rounds,
             issues,
         )
         for chapter in chapters

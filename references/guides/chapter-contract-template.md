@@ -9,7 +9,10 @@
 - **上一章摘要**：`summaries/第[XX-1]章.md`（第1章填“无”）
 - **QA 报告**：`qa/第XX章.md`
 - **最大修复轮次**：3
+- **最低检测轮次**：3
 - **文学质量门槛**：普通章节 `literaryScore >= 80`；第1-3章 `literaryScore >= 85`
+- **追读力门槛**：普通章节 `readerHookScore >= 80`；第1-3章 `readerHookScore >= 85`
+- **自动修复复检**：验收失败时按 [auto-repair-loop.md](auto-repair-loop.md) 定向修复；修复后旧检测结论作废，必须重新三轮检测
 
 ## 输入上下文
 
@@ -66,6 +69,9 @@
 | 11 | 第1-3章满足黄金三章专项门禁 | evaluator | 是 |
 | 12 | 反 AI 门禁通过：`antiAiStatus == "pass"` | evaluator | 是 |
 | 13 | 文学质量达标：普通章节 `literaryScore >= 80`，第1-3章 `>= 85` | evaluator | 是 |
+| 14 | 读者钩子门禁通过：有亮点、有追读钩子，`readerHookStatus == "pass"` | evaluator | 是 |
+| 15 | 所有检测至少完成 3 轮，且三轮均无阻塞失败 | evaluator | 是 |
+| 16 | 若曾验收失败，修复后已重新三轮检测，且 `repairRequired == false`、`needsRecheck == false`、`lastFailureCodes` 为空 | evaluator/state | 是 |
 
 ## 评分量表
 
@@ -95,12 +101,32 @@
 | 类型爽点 | 10 |
 | 余味与钩子 | 5 |
 
+## 追读力评分
+
+> 参考 [reader-hook-gate.md](reader-hook-gate.md)。该评分独立于章节 QA 总分和文学质量分。
+
+| 维度 | 分值 |
+|---|---:|
+| 开场抓力 | 15 |
+| 章节亮点 | 20 |
+| 幽默与反差 | 10 |
+| 主角魅力 | 15 |
+| 爽点兑现 | 15 |
+| 期待升级 | 15 |
+| 阅读顺滑 | 10 |
+
 通过标准：
 - `PASS`：总分 >= 85，且无阻塞项失败。
 - `PARTIAL`：总分 70-84，或存在非阻塞失败项。
 - `FAIL`：总分 < 70，或存在任一阻塞项失败。
 - `antiAiStatus` 必须为 `pass`。
 - `literaryScore` 必须达到门槛。
+- `readerHookStatus` 必须为 `pass`。
+- `readerHookScore` 必须达到门槛。
+- `memorableMoment` 和 `chapterTurnPageHook` 必须非空。
+- 每章至少完成 3 轮检测；任一轮发现阻塞项时，最终不得 `PASS`。
+- 修复后的章节必须重新完成 3 轮检测；不得沿用修复前的 QA 分数或结论。
+- `repairRequired`、`needsRecheck` 必须为 `false`，`lastFailureCodes` 必须为空。
 
 第1-3章补充规则：
 - 黄金三章专项未通过时，不得标记 `PASS`。
