@@ -11,6 +11,7 @@
 3. **悬念承上启下** - 每章结尾必须留下钩子
 4. **黄金三章留住读者** - 前三章必须完成启示、转折、小高潮
 5. **失败自动复检** - 验收失败必须定向修复，修复后重新三轮检测
+6. **Hook 拦截偷懒** - 写完、放行、停止、收口都必须运行 Novel Hook
 
 ---
 
@@ -98,6 +99,7 @@
 - **追读力**：记录 `readerHookStatus`、`readerHookScore`、`memorableMoment`、`chapterTurnPageHook`、`highlightIssues`
 - **三轮检测**：记录 `reviewRoundCount` 和 `requiredReviewPasses`
 - **自动修复复检**：记录 `repairRequired`、`needsRecheck`、`lastFailureCodes`、`repairRound`、`repairHistory`
+- **Hook 门禁**：记录 `hooksEnabled` 和 `hookGuardScript`，让写完、放行、停止、收口都有脚本拦截
 - **黄金三章**：记录 `goldenThree` 和前三章 `goldenThreeRole`
 - **中断续写**：Phase 0 读取 JSON 检测未完成项目，支持从断点继续
 - **校验依据**：Phase 4 基于 JSON 校验章节闭环、字数、QA 和总体验收
@@ -123,6 +125,8 @@
     "finalValidationRounds": 3,
     "autoRepairEnabled": true,
     "maxAutoRepairRounds": 3,
+    "hooksEnabled": true,
+    "hookGuardScript": "scripts/novel_hook_guard.py",
     "passScore": 85,
     "literaryPassScore": 80,
     "goldenThreeLiteraryPassScore": 85,
@@ -321,6 +325,37 @@ pending -> in_progress -> in_qa -> completed
 
 ---
 
+## Novel Hook 系统
+
+参考：[novel-hooks.md](../guides/novel-hooks.md)、[hook-lifecycle.md](hook-lifecycle.md)
+
+目标：
+
+- 防止模型写完正文后跳过 QA
+- 防止模型未三轮检测就标记 completed
+- 防止修复后不复检
+- 防止最终汇报时遗漏未完成章节
+- 防止会话断点丢失
+
+脚本：
+
+```bash
+python scripts/novel_hook_guard.py post-draft ./chinese-novelist/项目文件夹 --chapter 1
+python scripts/novel_hook_guard.py pre-mark-pass ./chinese-novelist/项目文件夹 --chapter 1
+python scripts/novel_hook_guard.py stop ./chinese-novelist/项目文件夹
+python scripts/novel_hook_guard.py session-close ./chinese-novelist/项目文件夹 --note "第1章 completed"
+```
+
+硬规则：
+
+- Step 3 draft 后必须运行 `post-draft`。
+- Step 7 mark_pass 前必须运行 `pre-mark-pass`。
+- Phase 4 汇报完成前必须运行 `stop`。
+- 每章完成或会话暂停前必须运行 `session-close`。
+- hook 失败时，按输出的 `Next action` 自动回到对应步骤，不向用户确认。
+
+---
+
 ## 黄金三章系统
 
 存储位置：`03-黄金三章.md`
@@ -442,3 +477,55 @@ python scripts/validate_novel_project.py ./chinese-novelist/项目文件夹 --js
 - 每章章节文件、章节契约、QA 报告、摘要路径是否符合状态
 - 已完成章节是否字数达标、QA 通过、无阻塞项、无待修复或待复检状态
 - 项目目录是否包含 `chapter-contracts/`、`qa/`、`summaries/`、`continuity/`、`progress/`
+
+## Hook Guard 脚本
+
+使用 `scripts/novel_hook_guard.py` 检查章节和项目的关键执行节点：
+
+```bash
+python scripts/novel_hook_guard.py post-draft ./chinese-novelist/项目文件夹 --chapter 1
+python scripts/novel_hook_guard.py pre-mark-pass ./chinese-novelist/项目文件夹 --chapter 1
+python scripts/novel_hook_guard.py stop ./chinese-novelist/项目文件夹
+python scripts/novel_hook_guard.py session-close ./chinese-novelist/项目文件夹 --note "保存断点"
+```
+
+Hook guard 会输出 `PASS/FAIL` 和 `Next action`。失败时必须继续执行下一步，不得直接对用户汇报完成。
+
+## Novel Harness Runtime 初始化
+
+使用 `scripts/init_novel_harness.py` 将入口契约和 Claude/Codex hook 配置安装到目标仓库：
+
+```bash
+python scripts/init_novel_harness.py --target-dir .
+```
+
+初始化内容：
+
+- `AGENTS.md`：Codex 执行入口
+- `CLAUDE.md`：Claude 执行入口
+- `.claude/settings.json`：Claude hook 注册
+- `.claude/hooks/*.py`：Claude hook wrapper
+- `.codex/config.toml`：Codex hook 开关
+- `.codex/hooks.json`：Codex hook 注册
+- `.codex/hooks/*.py`：Codex hook wrapper
+- `scripts/novel_runtime_hook.py`：Claude/Codex 共用 hook runtime
+
+初始化后，模型即使没有主动读取流程文档，也会在 UserPromptSubmit、PostToolUse 和 Stop 阶段收到或触发 Novel Harness 约束。Stop hook 失败时会阻断“完成”汇报。
+
+## Flow Smoke Test
+
+使用 `scripts/smoke_novel_flow.py` 一键验证整体 flow 能否正常拦截漏检、漏修和漏复检：
+
+```bash
+python scripts/smoke_novel_flow.py
+```
+
+覆盖场景：
+
+- 完整通过项目：`pre-mark-pass`、`stop`、`validate` 必须通过
+- 缺 QA 报告：`pre-mark-pass` 必须失败
+- 修复后未复检：`stop` 必须失败
+- 分数不足：`pre-mark-pass` 必须失败
+- blocked 风险章节：允许进入 `completed_with_risks`
+
+修改 hook、QA 字段、状态流转或校验脚本后，必须运行 smoke test。

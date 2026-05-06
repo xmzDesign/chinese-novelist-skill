@@ -9,6 +9,7 @@
 - 认领章节，更新 `owner`、`status`、`updatedAt`。
 - 控制写作、QA、修复、收口的顺序。
 - 如果验收失败，自动触发修复复检循环，不向用户确认。
+- 在章节写完、标记通过、最终停止和会话收口前触发 Novel Hook。
 - 在并行模式下只分配不重叠的故事弧或章节段。
 
 只允许 Orchestrator 或 State Keeper 写入全局状态文件：
@@ -107,6 +108,7 @@
 - 更新 `02-写作计划.json` 的 QA 字段、字数、状态和 retry 计数。
 - QA 失败时写入 `repairRequired`、`lastFailureCodes`、`repairRound` 和 `repairHistory`。
 - 修复完成后清空旧 QA 结论，写入 `needsRecheck: true`，并把 `reviewRoundCount` 重置为 0。
+- 运行 `post-draft`、`pre-mark-pass`、`stop`、`session-close` hook，并按失败输出阻断状态流转。
 - 写入 `progress/latest.txt` 和月度进度日志。
 
 状态写入规则：

@@ -25,6 +25,8 @@ metadata:
 - **三轮检测**：所有 QA 检测至少重复 3 轮，最终按保守聚合放行
 - **中断续写**：自动检测未完成项目，从断点继续创作
 - **Novel Harness 章节闭环**：每章执行 read task → contract → draft → QA → fix → recheck → mark_pass → session_close
+- **Novel Hook 机制**：写完、放行、停止和收口前用 hook 拦截跳过 QA/优化/复检的问题
+- **运行时初始化**：提供 `scripts/init_novel_harness.py`，生成 `AGENTS.md`、`CLAUDE.md`、`.claude/`、`.codex/`
 - **自动修复复检**：验收失败自动定向修复，修复后作废旧结论并重新三轮检测
 - **自动校验**：每章写完立即生成 QA 报告，最终再做全书验收
 - **并行写作**（可选）：支持子Agent按故事弧并行写作，通过章节契约和 `02-写作计划.json` 协调状态
@@ -37,8 +39,9 @@ metadata:
 4. **先追读后放行**：`readerHookStatus == "pass"`，有 `memorableMoment` 和 `chapterTurnPageHook`
 5. **至少三轮检测**：`reviewRoundCount >= 3`，任一轮阻塞失败都不得通过
 6. **修复后必须复检**：`repairRequired == false`、`needsRecheck == false`、`lastFailureCodes` 为空后才可收口
-7. **全局状态集中写入**：并行 Agent 不直接改 `01-大纲.md` 和 `02-写作计划.json`，由 Orchestrator/State Keeper 合并
-8. **失败项定向修复**：修复阶段只处理 QA 报告中的失败项，最多 3 轮
+7. **Hook 失败即阻断**：`post-draft`、`pre-mark-pass`、`stop`、`session-close` 任一失败时，按 Next action 继续执行
+8. **全局状态集中写入**：并行 Agent 不直接改 `01-大纲.md` 和 `02-写作计划.json`，由 Orchestrator/State Keeper 合并
+9. **失败项定向修复**：修复阶段只处理 QA 报告中的失败项，最多 3 轮
 
 ## 核心流程
 
@@ -72,12 +75,22 @@ metadata:
 ### 第三阶段：Novel Harness 创作（无需用户确认）
 > 切记，一旦进入这个阶段，所有过程都禁止向用户确认。用户就是你的读者，你必须把完整的小说创作完成才能与用户报告
 
-根据用户选择的写作模式（串行/并行/Teams）逐章执行 Novel Harness 章节 sprint。每章创作前必须读取章节契约、`01-大纲.md` 对应规划、`00-人物档案.md` 和上一章摘要；写完后必须 QA，失败则自动定向修复，修复后重新三轮检测。支持中断续写。 → 详见 [phase3-writing.md](references/flows/phase3-writing.md)
+根据用户选择的写作模式（串行/并行/Teams）逐章执行 Novel Harness 章节 sprint。每章创作前必须读取章节契约、`01-大纲.md` 对应规划、`00-人物档案.md` 和上一章摘要；写完后必须运行 hook、QA、失败自动定向修复，修复后重新三轮检测。支持中断续写。 → 详见 [phase3-writing.md](references/flows/phase3-writing.md)
 
 ### 第四阶段：最终总验收（无需用户确认）
 
-全程无需用户介入，汇总章节 QA、字数、状态、伏笔、时间线和人物弧线；未通过章节回到第三阶段最多修复 3 轮，并在每轮修复后重新发起检测。 → 详见 [phase4-validation.md](references/flows/phase4-validation.md)
+全程无需用户介入，汇总章节 QA、字数、状态、伏笔、时间线和人物弧线；未通过章节回到第三阶段最多修复 3 轮，并在每轮修复后重新发起检测。汇报完成前必须运行 stop hook。 → 详见 [phase4-validation.md](references/flows/phase4-validation.md)
 
 ## 共享机制
 
-偏好系统、写作计划系统、黄金三章、章节契约、文学质量门禁、追读力门禁、三轮检测、自动修复复检、QA 评分、进度收口、黄金法则、字数检查脚本等跨阶段共享机制。 → 详见 [shared-infrastructure.md](references/flows/shared-infrastructure.md)
+偏好系统、写作计划系统、黄金三章、章节契约、文学质量门禁、追读力门禁、三轮检测、自动修复复检、Novel Hook、QA 评分、进度收口、黄金法则、字数检查脚本和 flow smoke test 等跨阶段共享机制。 → 详见 [shared-infrastructure.md](references/flows/shared-infrastructure.md)
+
+### 运行时初始化
+
+如果目标仓库尚未配置 Claude/Codex hooks，先运行：
+
+```bash
+python scripts/init_novel_harness.py --target-dir .
+```
+
+该命令会初始化 `AGENTS.md`、`CLAUDE.md`、`.claude/settings.json`、`.codex/hooks.json` 和 hook 脚本。初始化后即使模型没有主动阅读流程文档，Stop hook 也会在汇报完成前拦截未 QA、未修复、未复检的项目。

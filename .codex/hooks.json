@@ -1,0 +1,41 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/context-injector.py\"",
+            "timeout": 30,
+            "statusMessage": "Injecting Novel Harness context"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|ApplyPatch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/novel-flow-post-tool.py\"",
+            "timeout": 10,
+            "statusMessage": "Checking Novel Harness flow"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/env python3 \"$(git rev-parse --show-toplevel 2>/dev/null || pwd)/.codex/hooks/novel-flow-stop.py\"",
+            "timeout": 30,
+            "statusMessage": "Running Novel Harness stop hook"
+          }
+        ]
+      }
+    ]
+  }
+}

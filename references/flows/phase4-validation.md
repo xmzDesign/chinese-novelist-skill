@@ -4,6 +4,8 @@
 
 Phase 4 不再把所有问题都留到最后补救。章节级字数、人物一致性、承接、结尾钩子和去 AI 味应在 Phase 3 的章节 sprint 内完成。本阶段负责总验收和风险汇总。
 
+汇报全稿完成前必须执行 stop hook。hook 失败时，不得向用户汇报完成，必须回到 hook 输出的 `Next action`。
+
 ---
 
 ## 1. 初始化总验收
@@ -151,6 +153,14 @@ WHILE 总验收未通过 AND validationRound < finalValidationRounds:
     重新运行 validate_novel_project.py
     重新执行全书连续性、黄金三章、文学质量和追读力 3 轮总验收
 ```
+
+完成总验收后，运行 stop hook：
+
+```bash
+python scripts/novel_hook_guard.py stop ./chinese-novelist/项目文件夹
+```
+
+stop hook 失败时，回到输出的 `Next action`，不得进入完成报告。
 
 ---
 

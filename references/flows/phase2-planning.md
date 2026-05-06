@@ -39,6 +39,8 @@
        "finalValidationRounds": 3,
        "autoRepairEnabled": true,
        "maxAutoRepairRounds": 3,
+       "hooksEnabled": true,
+       "hookGuardScript": "scripts/novel_hook_guard.py",
        "passScore": 85,
        "literaryPassScore": 80,
        "goldenThreeLiteraryPassScore": 85,
