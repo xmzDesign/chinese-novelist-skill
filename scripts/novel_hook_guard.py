@@ -19,6 +19,16 @@ from validate_novel_project import validate_project
 
 Issue = dict[str, str]
 
+VALID_ENDING_STRATEGIES = {
+    "payoff-close",
+    "soft-question",
+    "decision-point",
+    "emotional-aftertaste",
+    "resource-reveal",
+    "relationship-shift",
+    "threat-approach",
+}
+
 
 def add_issue(issues: list[Issue], level: str, code: str, message: str) -> None:
     """追加一条 hook 问题。"""
@@ -135,6 +145,7 @@ def run_pre_mark_pass(project_dir: Path, plan: dict[str, Any], chapter: dict[str
     label = f"第{number}章"
     literary_threshold = cfg["goldenThreeLiteraryPassScore"] if number in {1, 2, 3} else cfg["literaryPassScore"]
     reader_threshold = cfg["goldenThreeReaderHookPassScore"] if number in {1, 2, 3} else cfg["readerHookPassScore"]
+    ending_strategy = chapter.get("endingStrategy")
 
     require_existing_path(project_dir, chapter, "contractPath", "章节契约", issues)
     require_existing_path(project_dir, chapter, "qaReportPath", "QA 报告", issues)
@@ -161,7 +172,13 @@ def run_pre_mark_pass(project_dir: Path, plan: dict[str, Any], chapter: dict[str
             f"{label} readerHookScore 低于 {reader_threshold}",
         ),
         (bool(chapter.get("memorableMoment")), "missing-memorable-moment", f"{label} 缺少 memorableMoment"),
-        (bool(chapter.get("chapterTurnPageHook")), "missing-turn-page-hook", f"{label} 缺少 chapterTurnPageHook"),
+        (bool(chapter.get("chapterTurnPageHook")), "missing-turn-page-hook", f"{label} 缺少 chapterTurnPageHook/追读理由"),
+        (
+            ending_strategy in VALID_ENDING_STRATEGIES,
+            "invalid-ending-strategy",
+            f"{label} endingStrategy 非法或缺失: {ending_strategy}",
+        ),
+        (not chapter.get("formulaicIssues"), "formulaic-issues-exist", f"{label} 仍存在机械化结尾问题"),
         (not chapter.get("highlightIssues"), "highlight-issues-exist", f"{label} 仍存在追读力问题"),
         (
             isinstance(chapter.get("reviewRoundCount"), int)
@@ -178,6 +195,13 @@ def run_pre_mark_pass(project_dir: Path, plan: dict[str, Any], chapter: dict[str
     for passed, code, message in checks:
         if not passed:
             add_issue(issues, "error", code, message)
+
+    if not chapter.get("satisfactionBeats"):
+        add_issue(issues, "error", "missing-satisfaction-beats", f"{label} 缺少 satisfactionBeats")
+    if chapter.get("shuangwenStatus") != "pass":
+        add_issue(issues, "error", "shuangwen-not-pass", f"{label} shuangwenStatus 不是 pass")
+    if chapter.get("shuangwenIssues"):
+        add_issue(issues, "error", "shuangwen-issues-exist", f"{label} 仍存在爽文专项问题")
 
     if number in {1, 2, 3} and chapter.get("goldenThreeRole") not in {"启示", "转折", "小高潮"}:
         add_issue(issues, "error", "missing-golden-role", f"{label} 缺少黄金三章角色")

@@ -45,6 +45,10 @@ Never mark a chapter or whole novel complete while any of these are true:
 - `reviewRoundCount < 3`
 - `antiAiStatus != "pass"`
 - `readerHookStatus != "pass"`
+- `endingStrategy` is missing or invalid
+- `formulaicIssues` is not empty
+- `satisfactionBeats` is empty
+- `shuangwenStatus != "pass"`
 - `repairRequired == true`
 - `needsRecheck == true`
 - `lastFailureCodes` is not empty

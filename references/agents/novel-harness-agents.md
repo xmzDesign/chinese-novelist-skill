@@ -35,7 +35,8 @@
 职责：
 - 只写自己被分配的章节正文。
 - 写作前读取章节契约、大纲对应行、人物档案、上一章摘要。
-- 严格按契约完成核心事件、承接、冲突、人物行为和结尾钩子。
+- 严格按契约完成核心事件、承接、冲突、人物行为、结尾策略和追读理由。
+- 必须写出有因果的 `satisfactionBeats`，不按固定数量堆爽点。
 
 禁止：
 - 禁止改写其他章节。
@@ -50,7 +51,7 @@
 - 用动作、对话、具体感官细节替代抽象总结。
 
 修订原则：
-- 不改变章节契约中的核心事件和结尾钩子。
+- 不改变章节契约中的核心事件和结尾策略。
 - 不牺牲人物一致性来追求漂亮句子。
 - 不为了扩字数灌水。
 
@@ -59,7 +60,7 @@
 职责：
 - 检查人物设定、时间线、地点、伏笔、关系变化。
 - 对比上一章摘要和当前章节，确认承接成立。
-- 对比下一章规划，确认结尾钩子可被承接。
+- 对比下一章规划，确认追读理由可被承接，且结尾策略没有机械重复。
 
 主要产物：
 - `continuity/第XX章.md`
@@ -72,7 +73,7 @@
 职责：
 - 只按章节契约、用户特殊要求和质量量表评分。
 - 执行 [literary-quality-gate.md](../guides/literary-quality-gate.md) 的反 AI 门禁和文学质量评分。
-- 执行 [reader-hook-gate.md](../guides/reader-hook-gate.md) 的追读力、幽默、亮点和章节钩子评分。
+- 执行 [reader-hook-gate.md](../guides/reader-hook-gate.md) 的追读力、幽默、亮点、结尾反套路和爽文专项评分。
 - 执行 [auto-repair-loop.md](../guides/auto-repair-loop.md) 的失败项编号和复检规则。
 - 所有检测至少执行 3 轮，最终按保守聚合放行。
 - 必须给出证据摘录或位置说明。
@@ -92,8 +93,8 @@
 职责：
 - 只读取 QA 报告中的失败项并修复。
 - 对 `A-XX` 反 AI 问题做定向修复，不做泛泛润色。
-- 对 `R-XX` 追读力问题做定向修复，不靠硬塞段子补救。
-- 保留已通过的核心事件、承接关系和结尾钩子。
+- 对 `R-XX` 追读力、`M-XX` 机械化结尾和 `S-XX` 爽文专项问题做定向修复，不靠硬塞段子或硬钩子补救。
+- 保留已通过的核心事件、承接关系和结尾策略。
 - 每轮修复后交回 Evaluator 复评。
 - 修复完成后不得自行标记通过，必须等待 Evaluator 重新三轮检测。
 
@@ -112,6 +113,6 @@
 - 写入 `progress/latest.txt` 和月度进度日志。
 
 状态写入规则：
-- `qaStatus == "pass"`、`antiAiStatus == "pass"`、`literaryScore` 达标、`readerHookStatus == "pass"`、`readerHookScore` 达标、`reviewRoundCount >= 3`、`repairRequired == false`、`needsRecheck == false`、`lastFailureCodes` 为空且无阻塞项时，才可将章节标记为 `completed`。
+- `qaStatus == "pass"`、`antiAiStatus == "pass"`、`literaryScore` 达标、`readerHookStatus == "pass"`、`readerHookScore` 达标、`endingStrategy` 合法、`formulaicIssues` 为空、爽文专项通过（如适用）、`reviewRoundCount >= 3`、`repairRequired == false`、`needsRecheck == false`、`lastFailureCodes` 为空且无阻塞项时，才可将章节标记为 `completed`。
 - `qaStatus == "fail"` 或存在阻塞项时，章节保持 `failed` 或 `in_revision`。
 - 超过 3 轮仍失败时，记录为 `blocked`，进入最终报告。

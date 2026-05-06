@@ -18,7 +18,7 @@
    - `summaries/`：每章摘要，供后续章节承接
    - `continuity/`：时间线、伏笔表、人物弧线等全书级连续性材料
    - `progress/`：`latest.txt` 和月度进度日志
-6. **生成章节契约**：为每一章创建 `chapter-contracts/第XX章.md`。契约必须从 `01-大纲.md` 的章节规划派生，包含核心事件、承接上章、出场人物、场景列表、章首引子类型、结尾钩子、伏笔要求、验收标准、自动修复复检规则和评分量表，并引用 [literary-quality-gate.md](../guides/literary-quality-gate.md)、[reader-hook-gate.md](../guides/reader-hook-gate.md)、[auto-repair-loop.md](../guides/auto-repair-loop.md)。第1-3章必须额外填充“黄金三章专项”。
+6. **生成章节契约**：为每一章创建 `chapter-contracts/第XX章.md`。契约必须从 `01-大纲.md` 的章节规划派生，包含核心事件、承接上章、出场人物、场景列表、章首引子类型、结尾策略、追读理由、伏笔要求、验收标准、自动修复复检规则和评分量表，并引用 [literary-quality-gate.md](../guides/literary-quality-gate.md)、[reader-hook-gate.md](../guides/reader-hook-gate.md)、[auto-repair-loop.md](../guides/auto-repair-loop.md)。第1-3章必须额外填充“黄金三章专项”。
 7. **生成写作计划**：创建 `02-写作计划.json`，基于大纲和章节契约填充，结构如下：
    ```json
    {
@@ -32,6 +32,26 @@
      "updatedAt": "[ISO时间]",
      "status": "planning",
      "writingMode": "[serial|subagent-parallel|agent-teams]",
+     "endingPolicy": {
+       "avoidFormulaicEndings": true,
+       "allowClosedChapterEndings": true,
+       "maxConsecutiveStrongSuspenseEndings": 1,
+       "strategyPool": [
+         "payoff-close",
+         "soft-question",
+         "decision-point",
+         "emotional-aftertaste",
+         "resource-reveal",
+         "relationship-shift",
+         "threat-approach"
+       ]
+     },
+     "shuangwenConfig": {
+       "cadence": "每章至少一次有效情绪兑现，但不固定爽点数量",
+       "protagonistAdvantage": "[金手指/能力/信息差/资源/身份/经验]",
+       "payoffStyle": "[打脸|反击|升级|奖励|关系推进|真相揭示]",
+       "antiRoutineRule": "爽点必须来自人物选择和代价，禁止清单式堆砌"
+     },
      "harness": {
        "maxRevisionRounds": 3,
        "qaReviewRounds": 3,
@@ -76,6 +96,13 @@
          "readerHookScore": null,
          "memorableMoment": "",
          "chapterTurnPageHook": "",
+         "endingStrategy": "[payoff-close|soft-question|decision-point|emotional-aftertaste|resource-reveal|relationship-shift|threat-approach]",
+         "expectationPayoff": "",
+         "expectationNext": "",
+         "satisfactionBeats": [],
+         "formulaicIssues": [],
+         "shuangwenStatus": null,
+         "shuangwenIssues": [],
          "humorBeat": "",
          "highlightIssues": [],
          "reviewRoundCount": 0,

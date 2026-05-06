@@ -36,6 +36,14 @@ def base_plan() -> dict[str, Any]:
         "maxWordsPerChapter": 5000,
         "status": "completed",
         "writingMode": "serial",
+        "endingPolicy": {
+            "avoidFormulaicEndings": True,
+            "allowClosedChapterEndings": True,
+        },
+        "shuangwenConfig": {
+            "cadence": "每章至少一次有效情绪兑现",
+            "protagonistAdvantage": "有限优势",
+        },
         "harness": {
             "maxRevisionRounds": 3,
             "qaReviewRounds": 3,
@@ -80,6 +88,13 @@ def base_plan() -> dict[str, Any]:
                 "readerHookScore": 88,
                 "memorableMoment": "主角从墙上刀痕意识到今晚的危机",
                 "chapterTurnPageHook": "墙上的刀痕是谁留下的",
+                "endingStrategy": "resource-reveal",
+                "expectationPayoff": "兑现主角发现异常的观察力",
+                "expectationNext": "刀痕背后的袭击者仍未现身",
+                "satisfactionBeats": ["主角用刀痕反推袭击方向，让误判他的朋友当场闭嘴"],
+                "formulaicIssues": [],
+                "shuangwenStatus": "pass",
+                "shuangwenIssues": [],
                 "humorBeat": "朋友嘴损地骂主角来晚",
                 "highlightIssues": [],
                 "reviewRoundCount": 3,
@@ -105,17 +120,16 @@ def write_project(project_dir: Path, plan: dict[str, Any], *, omit_qa: bool = Fa
     (project_dir / "00-人物档案.md").write_text("# 人物档案\n\n主角：少年，有锋芒。", encoding="utf-8")
     (project_dir / "01-大纲.md").write_text("# 大纲\n\n第1章：烟火。", encoding="utf-8")
     (project_dir / "03-黄金三章.md").write_text("# 黄金三章\n\n第1章启示。", encoding="utf-8")
-    (project_dir / "chapter-contracts" / "第01章.md").write_text("# 第01章章节契约\n\n验收标准齐全。", encoding="utf-8")
-    if not omit_qa:
-        (project_dir / "qa" / "第01章.md").write_text("# 第01章 QA 报告\n\nPASS。", encoding="utf-8")
-    (project_dir / "summaries" / "第01章.md").write_text("# 第01章摘要\n\n主角发现刀痕。", encoding="utf-8")
-    (project_dir / "continuity" / "第01章.md").write_text("# 第01章连续性\n\n刀痕伏笔。", encoding="utf-8")
-    (project_dir / "第01章-烟火.md").write_text(chapter_text(), encoding="utf-8")
-
-    if len(plan["chapters"]) > 1:
-        (project_dir / "chapter-contracts" / "第02章.md").write_text("# 第02章章节契约\n", encoding="utf-8")
-        (project_dir / "qa" / "第02章.md").write_text("# 第02章 QA 报告\n\nBLOCKED。", encoding="utf-8")
-        (project_dir / "第02章-堵点.md").write_text(chapter_text().replace("第01章 烟火", "第02章 堵点"), encoding="utf-8")
+    for chapter in plan["chapters"]:
+        number = chapter["chapterNumber"]
+        title = chapter["title"]
+        chapter_no = f"第{number:02d}章"
+        (project_dir / "chapter-contracts" / f"{chapter_no}.md").write_text(f"# {chapter_no}章节契约\n\n验收标准齐全。", encoding="utf-8")
+        if not (omit_qa and number == 1):
+            (project_dir / "qa" / f"{chapter_no}.md").write_text(f"# {chapter_no} QA 报告\n\nPASS。", encoding="utf-8")
+        (project_dir / "summaries" / f"{chapter_no}.md").write_text(f"# {chapter_no}摘要\n\n主角发现刀痕。", encoding="utf-8")
+        (project_dir / "continuity" / f"{chapter_no}.md").write_text(f"# {chapter_no}连续性\n\n刀痕伏笔。", encoding="utf-8")
+        (project_dir / chapter["filePath"]).write_text(chapter_text().replace("第01章 烟火", f"{chapter_no} {title}"), encoding="utf-8")
 
     plan = deepcopy(plan)
     plan["projectPath"] = str(project_dir)
@@ -173,6 +187,29 @@ def make_blocked_plan() -> dict[str, Any]:
     plan["totalChapters"] = 2
     plan["status"] = "completed_with_risks"
     plan["chapters"].append(blocked_chapter)
+    return plan
+
+
+def make_formulaic_plan() -> dict[str, Any]:
+    """生成连续强悬念结尾的计划，validate/stop 应拦截。"""
+    plan = base_plan()
+    second = deepcopy(plan["chapters"][0])
+    second.update(
+        {
+            "chapterNumber": 2,
+            "title": "回声",
+            "filePath": "第02章-回声.md",
+            "contractPath": "chapter-contracts/第02章.md",
+            "qaReportPath": "qa/第02章.md",
+            "summaryPath": "summaries/第02章.md",
+            "continuityReportPath": "continuity/第02章.md",
+            "goldenThreeRole": "转折",
+            "endingStrategy": "threat-approach",
+        }
+    )
+    plan["chapters"][0]["endingStrategy"] = "threat-approach"
+    plan["totalChapters"] = 2
+    plan["chapters"].append(second)
     return plan
 
 
@@ -235,6 +272,28 @@ def run_smoke_tests() -> None:
         blocked_dir.mkdir()
         write_project(blocked_dir, make_blocked_plan())
         assert_result("blocked/stop", run_command([str(HOOK_SCRIPT), "stop", str(blocked_dir)]), True)
+
+        satisfaction_missing_dir = tmp_root / "fixture-satisfaction-missing"
+        satisfaction_missing_dir.mkdir()
+        satisfaction_missing_plan = base_plan()
+        satisfaction_missing_plan["chapters"][0]["satisfactionBeats"] = []
+        write_project(satisfaction_missing_dir, satisfaction_missing_plan)
+        assert_result(
+            "satisfaction-missing/pre-mark-pass",
+            run_command([str(HOOK_SCRIPT), "pre-mark-pass", str(satisfaction_missing_dir), "--chapter", "1"]),
+            False,
+            "missing-satisfaction-beats",
+        )
+
+        formulaic_dir = tmp_root / "fixture-formulaic"
+        formulaic_dir.mkdir()
+        write_project(formulaic_dir, make_formulaic_plan())
+        assert_result(
+            "formulaic/validate",
+            run_command([str(VALIDATE_SCRIPT), str(formulaic_dir)]),
+            False,
+            "formulaic-strong-ending-repeat",
+        )
 
 
 def main() -> int:

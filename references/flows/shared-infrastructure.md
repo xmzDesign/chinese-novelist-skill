@@ -8,10 +8,11 @@
 
 1. **展示而非讲述** - 用动作和对话表现，不要直接陈述
 2. **冲突驱动剧情** - 每章必须有冲突或转折
-3. **悬念承上启下** - 每章结尾必须留下钩子
+3. **期待承上启下** - 每章必须有追读理由，但结尾不必每章硬悬念
 4. **黄金三章留住读者** - 前三章必须完成启示、转折、小高潮
 5. **失败自动复检** - 验收失败必须定向修复，修复后重新三轮检测
 6. **Hook 拦截偷懒** - 写完、放行、停止、收口都必须运行 Novel Hook
+7. **爽文节拍可验收** - 所有小说都看情绪兑现和升级可见，不按固定爽点数量打卡
 
 ---
 
@@ -97,6 +98,8 @@
 - **QA 闭环**：记录 `qaReportPath`、`qaStatus`、`qualityScore`、`blockingIssues`
 - **文学质量**：记录 `antiAiStatus`、`literaryScore`、`aiTraceIssues`
 - **追读力**：记录 `readerHookStatus`、`readerHookScore`、`memorableMoment`、`chapterTurnPageHook`、`highlightIssues`
+- **期待管理**：记录 `endingStrategy`、`expectationPayoff`、`expectationNext`、`formulaicIssues`
+- **爽文专项**：记录 `satisfactionBeats`、`shuangwenStatus`、`shuangwenIssues`
 - **三轮检测**：记录 `reviewRoundCount` 和 `requiredReviewPasses`
 - **自动修复复检**：记录 `repairRequired`、`needsRecheck`、`lastFailureCodes`、`repairRound`、`repairHistory`
 - **Hook 门禁**：记录 `hooksEnabled` 和 `hookGuardScript`，让写完、放行、停止、收口都有脚本拦截
@@ -118,6 +121,16 @@
 ```json
 {
   "version": 2,
+  "writingMode": "serial",
+  "endingPolicy": {
+    "avoidFormulaicEndings": true,
+    "allowClosedChapterEndings": true,
+    "maxConsecutiveStrongSuspenseEndings": 1
+  },
+  "shuangwenConfig": {
+    "enabledWhenContentModeIsShuangwen": true,
+    "cadence": "每章至少一次有效情绪兑现，但不固定爽点数量"
+  },
   "harness": {
     "maxRevisionRounds": 3,
     "qaReviewRounds": 3,
@@ -162,6 +175,13 @@
       "readerHookScore": null,
       "memorableMoment": "",
       "chapterTurnPageHook": "",
+      "endingStrategy": "resource-reveal",
+      "expectationPayoff": "",
+      "expectationNext": "",
+      "satisfactionBeats": [],
+      "formulaicIssues": [],
+      "shuangwenStatus": null,
+      "shuangwenIssues": [],
       "humorBeat": "",
       "highlightIssues": [],
       "reviewRoundCount": 0,
@@ -203,6 +223,9 @@ pending -> in_progress -> in_qa -> completed
 - 第1-3章 `readerHookScore >= 85`
 - `memorableMoment` 非空
 - `chapterTurnPageHook` 非空
+- `endingStrategy` 合法
+- `formulaicIssues` 为空
+- `satisfactionBeats` 非空、`shuangwenStatus == "pass"`、`shuangwenIssues` 为空
 - `highlightIssues` 为空
 - `reviewRoundCount >= 3`
 - `blockingIssues` 为空
@@ -251,7 +274,7 @@ pending -> in_progress -> in_qa -> completed
 
 ---
 
-## 读者钩子与追读系统
+## 追读理由与爽文系统
 
 参考：[reader-hook-gate.md](../guides/reader-hook-gate.md)
 
@@ -259,8 +282,9 @@ pending -> in_progress -> in_qa -> completed
 
 - 每章都有能被读者记住的亮点
 - 在题材允许范围内加入幽默、反差或轻松调味
-- 每章至少有一次局部爽点兑现
-- 结尾有明确追读理由
+- 每章至少有一次可感知的亮点或局部兑现
+- 结尾有明确追读理由，但不强制每章都制造硬悬念
+- 爽文专项强调憋屈释放、局部胜利、升级可见和下一步奖励
 
 核心字段：
 
@@ -269,11 +293,18 @@ pending -> in_progress -> in_qa -> completed
 | `readerHookStatus` | `pass` / `fail` |
 | `readerHookScore` | 0-100，普通章节 >=80，第1-3章 >=85 |
 | `memorableMoment` | 本章最值得记住的桥段、台词、反转或爽点 |
-| `chapterTurnPageHook` | 本章结尾驱动读者继续看的具体理由 |
+| `chapterTurnPageHook` | 本章结尾驱动读者继续看的具体理由，不等于硬悬念 |
+| `endingStrategy` | 结尾策略：兑现收束、软问题、选择点、情绪余味、资源揭示、关系变化、危险逼近等 |
+| `expectationPayoff` | 本章已经兑现的期待 |
+| `expectationNext` | 下一章承接的期待 |
+| `satisfactionBeats` | 有效情绪兑现列表 |
+| `formulaicIssues` | M 类机械化结尾问题 |
+| `shuangwenStatus` | `pass` / `fail` / `null` |
+| `shuangwenIssues` | S 类爽文专项问题 |
 | `humorBeat` | 本章幽默、反差、尴尬、嘴损或轻松调味 |
 | `highlightIssues` | R 类问题编号，如 `R-01`、`R-02` |
 
-章节只有 `readerHookStatus == "pass"`、`readerHookScore` 达标、存在 `memorableMoment` 和 `chapterTurnPageHook` 时，才允许 `completed`。
+章节只有 `readerHookStatus == "pass"`、`readerHookScore` 达标、存在 `memorableMoment` 和 `chapterTurnPageHook`，且不存在机械化结尾问题并通过爽文专项时，才允许 `completed`。
 
 ---
 
@@ -283,7 +314,7 @@ pending -> in_progress -> in_qa -> completed
 
 规则：
 
-- 每轮都必须独立检查：章节契约、反 AI、文学质量、读者钩子、黄金三章（如适用）
+- 每轮都必须独立检查：章节契约、反 AI、文学质量、追读理由、反套路结尾、爽文专项（如适用）、黄金三章（如适用）
 - 最终结论采用保守聚合
 - 任一轮出现阻塞失败，最终不得 `PASS`
 - 文学质量分和追读力分采用三轮最低分
@@ -412,7 +443,7 @@ python scripts/novel_hook_guard.py session-close ./chinese-novelist/项目文件
 | 人物一致性 | 15 |
 | 冲突与节奏 | 10 |
 | 对话质量 | 10 |
-| 结尾钩子 | 10 |
+| 结尾策略与追读理由 | 10 |
 | 去 AI 味与文字质感 | 10 |
 
 判定：

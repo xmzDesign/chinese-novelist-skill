@@ -1,7 +1,7 @@
 ---
 name: chinese-novelist
 description: |
-  分章节创作引人入胜的中文小说。支持各种题材（悬疑/言情/奇幻/科幻/历史等），支持10-50章长篇创作，每章3000-5000字，结尾设置悬念钩子。强调深度润色去除AI痕迹，验收失败自动修复并复检，确保文字自然流畅。
+  分章节创作引人入胜的中文小说。支持各种题材（悬疑/言情/奇幻/科幻/历史等），支持10-50章长篇创作，每章3000-5000字，使用追读理由和结尾策略轮换避免机械化钩子。强调爽文节拍、深度润色去除AI痕迹，验收失败自动修复并复检，确保文字自然流畅。
   当用户要求：写小说、创作故事、分章节写作、连续剧情、章节悬念、长篇小说时使用。
 metadata:
   trigger: 创作中文小说、分章节故事、长篇小说创作
@@ -14,14 +14,17 @@ metadata:
 
 1. **展示而非讲述** - 用动作和对话表现，不要直接陈述
 2. **冲突驱动剧情** - 每章必须有冲突或转折
-3. **悬念承上启下** - 每章结尾必须留下钩子
+3. **期待承上启下** - 每章必须有追读理由，但不强制硬悬念钩子
 4. **黄金三章留住读者** - 前三章必须完成启示、转折、小高潮
+5. **爽文节拍可兑现** - 所有小说必须有情绪兑现、升级可见和下一步期待
 
 ## 特性说明
 
 - **黄金三章专项**：开篇三章按“启示 → 转折 → 小高潮”设计和验收
 - **文学质量门禁**：反 AI 一票否决，章节必须达到最低文学质量分
-- **追读力门禁**：每章必须有亮点、幽默/反差调味和明确追读钩子
+- **追读力门禁**：每章必须有亮点、幽默/反差调味和明确追读理由
+- **爽文专项**：所有小说默认检查 `satisfactionBeats`、`shuangwenStatus` 和爽文专项问题
+- **反套路结尾**：通过 `endingStrategy` 轮换结尾类型，拦截每章同质硬钩子
 - **三轮检测**：所有 QA 检测至少重复 3 轮，最终按保守聚合放行
 - **中断续写**：自动检测未完成项目，从断点继续创作
 - **Novel Harness 章节闭环**：每章执行 read task → contract → draft → QA → fix → recheck → mark_pass → session_close
@@ -36,7 +39,7 @@ metadata:
 1. **先契约后写作**：每章写作前必须存在 `chapter-contracts/第XX章.md`
 2. **先 QA 后完成**：章节只有在 `qaStatus == "pass"` 且无阻塞项时，才能标记 `completed`
 3. **先反 AI 后评分**：`antiAiStatus == "pass"` 且 `literaryScore` 达标后，才允许通过
-4. **先追读后放行**：`readerHookStatus == "pass"`，有 `memorableMoment` 和 `chapterTurnPageHook`
+4. **先追读后放行**：`readerHookStatus == "pass"`，有 `memorableMoment`、`chapterTurnPageHook` 和合法 `endingStrategy`
 5. **至少三轮检测**：`reviewRoundCount >= 3`，任一轮阻塞失败都不得通过
 6. **修复后必须复检**：`repairRequired == false`、`needsRecheck == false`、`lastFailureCodes` 为空后才可收口
 7. **Hook 失败即阻断**：`post-draft`、`pre-mark-pass`、`stop`、`session-close` 任一失败时，按 Next action 继续执行
@@ -75,7 +78,7 @@ metadata:
 ### 第三阶段：Novel Harness 创作（无需用户确认）
 > 切记，一旦进入这个阶段，所有过程都禁止向用户确认。用户就是你的读者，你必须把完整的小说创作完成才能与用户报告
 
-根据用户选择的写作模式（串行/并行/Teams）逐章执行 Novel Harness 章节 sprint。每章创作前必须读取章节契约、`01-大纲.md` 对应规划、`00-人物档案.md` 和上一章摘要；写完后必须运行 hook、QA、失败自动定向修复，修复后重新三轮检测。支持中断续写。 → 详见 [phase3-writing.md](references/flows/phase3-writing.md)
+根据用户选择的写作模式（串行/并行/Teams）逐章执行 Novel Harness 章节 sprint。每章创作前必须读取章节契约、`01-大纲.md` 对应规划、`00-人物档案.md` 和上一章摘要；写完后必须运行 hook、QA、失败自动定向修复，修复后重新三轮检测。所有小说都必须通过爽文专项和机械化结尾检查。支持中断续写。 → 详见 [phase3-writing.md](references/flows/phase3-writing.md)
 
 ### 第四阶段：最终总验收（无需用户确认）
 

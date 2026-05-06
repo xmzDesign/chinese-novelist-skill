@@ -21,7 +21,10 @@
 - **出场人物**：[人物列表]
 - **场景列表**：[场景1；场景2；场景3]
 - **章首引子类型**：[从 hook-techniques.md 选择]
-- **结尾钩子类型**：[从 hook-techniques.md 选择]
+- **结尾策略 endingStrategy**：payoff-close / soft-question / decision-point / emotional-aftertaste / resource-reveal / relationship-shift / threat-approach
+- **本章兑现 expectationPayoff**：[本章必须让读者得到什么情绪、信息、爽点或关系推进]
+- **下章期待 expectationNext**：[读者继续读的具体理由，不等于硬悬念]
+- **爽点节拍 satisfactionBeats**：[必填；写清本章有效情绪兑现]
 - **伏笔要求**：[本章必须埋下、推进或回收的伏笔]
 - **用户特殊要求**：[必须包含或禁止出现的内容]
 
@@ -44,7 +47,7 @@
 - 严格完成本章核心事件。
 - 让出场人物的行为和说话方式符合 `00-人物档案.md`。
 - 回应上一章摘要中的关键悬念。
-- 为下一章留下可承接的结尾钩子。
+- 为下一章留下可承接的追读理由；结尾可以收束、兑现、留余味，也可以制造悬念。
 
 ### 范围外
 
@@ -63,15 +66,17 @@
 | 5 | 全章至少有 2 个张力波峰，且中段不连续空转 | evaluator | 否 |
 | 6 | 对话推动情节或暴露人物关系，避免同质化闲聊 | evaluator | 否 |
 | 7 | 至少出现 1 个读者预期外的信息、行动或反转 | evaluator | 否 |
-| 8 | 结尾钩子清晰，并能被下一章规划承接 | evaluator | 是 |
+| 8 | 结尾策略清晰，追读理由成立，并能被下一章规划承接 | evaluator | 是 |
 | 9 | 没有明显 AI 味：空泛抒情、套话、堆砌形容词、四字格律过密 | evaluator | 否 |
 | 10 | 伏笔记录完整：新增、推进、回收都写入摘要或伏笔表 | evaluator | 否 |
 | 11 | 第1-3章满足黄金三章专项门禁 | evaluator | 是 |
 | 12 | 反 AI 门禁通过：`antiAiStatus == "pass"` | evaluator | 是 |
 | 13 | 文学质量达标：普通章节 `literaryScore >= 80`，第1-3章 `>= 85` | evaluator | 是 |
-| 14 | 读者钩子门禁通过：有亮点、有追读钩子，`readerHookStatus == "pass"` | evaluator | 是 |
+| 14 | 追读门禁通过：有亮点、有追读理由，`readerHookStatus == "pass"` | evaluator | 是 |
 | 15 | 所有检测至少完成 3 轮，且三轮均无阻塞失败 | evaluator | 是 |
 | 16 | 若曾验收失败，修复后已重新三轮检测，且 `repairRequired == false`、`needsRecheck == false`、`lastFailureCodes` 为空 | evaluator/state | 是 |
+| 17 | 无机械化结尾问题：`formulaicIssues` 为空，连续章节不重复强悬念策略 | evaluator/state | 是 |
+| 18 | 爽文专项通过：`shuangwenStatus == "pass"` 且 `satisfactionBeats` 非空 | evaluator | 是 |
 
 ## 评分量表
 
@@ -83,7 +88,7 @@
 | 人物一致性 | 15 |
 | 冲突与节奏 | 10 |
 | 对话质量 | 10 |
-| 结尾钩子 | 10 |
+| 结尾策略与追读理由 | 10 |
 | 去 AI 味与文字质感 | 10 |
 
 ## 文学质量评分
@@ -99,7 +104,7 @@
 | 节奏变化 | 10 |
 | 语言自然度 | 15 |
 | 类型爽点 | 10 |
-| 余味与钩子 | 5 |
+| 余味与追读理由 | 5 |
 
 ## 追读力评分
 
@@ -124,6 +129,9 @@
 - `readerHookStatus` 必须为 `pass`。
 - `readerHookScore` 必须达到门槛。
 - `memorableMoment` 和 `chapterTurnPageHook` 必须非空。
+- `endingStrategy` 必须属于允许策略之一。
+- `formulaicIssues` 必须为空。
+- `satisfactionBeats` 必须非空，`shuangwenStatus` 必须为 `pass`，`shuangwenIssues` 必须为空。
 - 每章至少完成 3 轮检测；任一轮发现阻塞项时，最终不得 `PASS`。
 - 修复后的章节必须重新完成 3 轮检测；不得沿用修复前的 QA 分数或结论。
 - `repairRequired`、`needsRecheck` 必须为 `false`，`lastFailureCodes` 必须为空。

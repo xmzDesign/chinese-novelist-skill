@@ -6,14 +6,16 @@
 - **分数**：[0-100]
 - **反 AI 门禁**：pass / fail
 - **文学质量分**：[0-100]
-- **读者钩子门禁**：pass / fail
+- **追读理由门禁**：pass / fail
 - **追读力分**：[0-100]
+- **结尾策略**：[endingStrategy]
+- **爽文专项**：pass / fail
 - **检测轮次**：[至少3]
 - **是否可标记 completed**：是 / 否
 - **修复轮次**：[0-3]
 - **是否需要修复**：是 / 否
 - **是否等待复检**：是 / 否
-- **最近失败项**：[A-XX/R-XX/B-XX/G-XX/C-XX，若无写“无”]
+- **最近失败项**：[A-XX/R-XX/M-XX/S-XX/B-XX/G-XX/C-XX，若无写“无”]
 - **检查时间**：[ISO时间]
 
 ## 输入文件
@@ -34,7 +36,7 @@
 | 4 | 人物一致性 | PASS/PARTIAL/FAIL | /15 | |
 | 5 | 冲突与节奏 | PASS/PARTIAL/FAIL | /10 | |
 | 6 | 对话质量 | PASS/PARTIAL/FAIL | /10 | |
-| 7 | 结尾钩子 | PASS/PARTIAL/FAIL | /10 | |
+| 7 | 结尾策略与追读理由 | PASS/PARTIAL/FAIL | /10 | |
 | 8 | 去 AI 味与文字质感 | PASS/PARTIAL/FAIL | /10 | |
 
 ## 反 AI 门禁
@@ -65,11 +67,11 @@ antiAiStatus：pass / fail
 | 节奏变化 | /10 | |
 | 语言自然度 | /15 | |
 | 类型爽点 | /10 | |
-| 余味与钩子 | /5 | |
+| 余味与追读理由 | /5 | |
 
 literaryScore：[0-100]
 
-## 读者钩子门禁
+## 追读理由门禁
 
 > 参考 [reader-hook-gate.md](reader-hook-gate.md)。任一严重追读问题出现时，`readerHookStatus` 必须为 `fail`。
 
@@ -80,11 +82,39 @@ literaryScore：[0-100]
 | R-03 | 幽默缺席或幽默破坏基调 | PASS/FAIL | | | |
 | R-04 | 主角魅力没有展示出来 | PASS/FAIL | | | |
 | R-05 | 爽点只铺垫没有兑现 | PASS/FAIL | | | |
-| R-06 | 结尾追读钩子不成立 | PASS/FAIL | | | |
+| R-06 | 结尾追读理由不成立 | PASS/FAIL | | | |
 | R-07 | 章节中段停滞 | PASS/FAIL | | | |
 | R-08 | 反转或冲突太常规 | PASS/FAIL | | | |
 
 readerHookStatus：pass / fail
+
+## 结尾反套路门禁
+
+| 编号 | 类型 | 状态 | 位置或证据 | 为什么机械化 | 修复建议 |
+|---|---|---|---|---|---|
+| M-01 | 连续强悬念结尾 | PASS/FAIL | | | |
+| M-02 | 惯用物件钩子重复 | PASS/FAIL | | | |
+| M-03 | 只铺垫不兑现 | PASS/FAIL | | | |
+| M-04 | 结尾和本章核心事件无因果 | PASS/FAIL | | | |
+| M-05 | 追读理由只靠“下一章会发生事” | PASS/FAIL | | | |
+
+formulaicIssues：[]
+
+## 爽文专项（所有章节必填）
+
+| 编号 | 类型 | 状态 | 位置或证据 | 为什么不爽 | 修复建议 |
+|---|---|---|---|---|---|
+| S-01 | 爽点无铺垫 | PASS/FAIL | | | |
+| S-02 | 本章无有效爽点节拍 | PASS/FAIL | | | |
+| S-03 | 只憋屈不释放 | PASS/FAIL | | | |
+| S-04 | 主角升级不可见 | PASS/FAIL | | | |
+| S-05 | 打脸没有因果 | PASS/FAIL | | | |
+| S-06 | 爽点靠旁白宣布 | PASS/FAIL | | | |
+
+shuangwenStatus：pass / fail
+satisfactionBeats：
+- [本章有效爽点节拍，必须具体到铺垫、行动、兑现和后续期待]
+shuangwenIssues：[]
 
 ## 追读力评分
 
@@ -103,7 +133,10 @@ readerHookScore：[0-100]
 ## 章节记忆点
 
 - **memorableMoment**：[本章最值得读者记住的桥段/台词/反转/爽点]
-- **chapterTurnPageHook**：[读者读完本章后想继续看的具体原因]
+- **chapterTurnPageHook**：[读者读完本章后想继续看的具体原因；不是硬悬念模板]
+- **endingStrategy**：payoff-close / soft-question / decision-point / emotional-aftertaste / resource-reveal / relationship-shift / threat-approach
+- **expectationPayoff**：[本章已经兑现给读者的东西]
+- **expectationNext**：[下一章的具体期待]
 - **humorBeat**：[本章幽默或反差点；严肃题材可写“低频/克制”，但必须说明调味方式]
 
 ## 黄金三章专项（第1-3章必填）
@@ -125,11 +158,11 @@ readerHookScore：[0-100]
 
 > 为降低模型差异，所有检测至少重复 3 轮。每轮必须独立给出结论；最终结论采用保守聚合：任一轮出现阻塞失败，最终不得 PASS；分数采用三轮最低分。
 
-| 轮次 | QA状态 | antiAiStatus | literaryScore | readerHookStatus | readerHookScore | 黄金三章 | 阻塞项 |
-|---|---|---|---:|---|---:|---|---|
-| 1 | PASS/PARTIAL/FAIL | pass/fail | | pass/fail | | PASS/FAIL/不适用 | |
-| 2 | PASS/PARTIAL/FAIL | pass/fail | | pass/fail | | PASS/FAIL/不适用 | |
-| 3 | PASS/PARTIAL/FAIL | pass/fail | | pass/fail | | PASS/FAIL/不适用 | |
+| 轮次 | QA状态 | antiAiStatus | literaryScore | readerHookStatus | readerHookScore | 反套路 | 爽文专项 | 黄金三章 | 阻塞项 |
+|---|---|---|---:|---|---:|---|---|---|---|
+| 1 | PASS/PARTIAL/FAIL | pass/fail | | pass/fail | | PASS/FAIL | PASS/FAIL | PASS/FAIL/不适用 | |
+| 2 | PASS/PARTIAL/FAIL | pass/fail | | pass/fail | | PASS/FAIL | PASS/FAIL | PASS/FAIL/不适用 | |
+| 3 | PASS/PARTIAL/FAIL | pass/fail | | pass/fail | | PASS/FAIL | PASS/FAIL | PASS/FAIL/不适用 | |
 
 最终聚合：
 - **reviewRoundCount**：3
@@ -147,7 +180,7 @@ readerHookScore：[0-100]
   "repairRequired": true,
   "needsRecheck": false,
   "repairRound": 0,
-  "lastFailureCodes": ["A-XX", "R-XX", "B-XX"]
+  "lastFailureCodes": ["A-XX", "R-XX", "M-XX", "S-XX", "B-XX"]
 }
 ```
 
@@ -181,7 +214,7 @@ readerHookScore：[0-100]
 
 ## 修复指令
 
-只修复以下失败项，不改动已通过的核心事件、人物关系和结尾钩子：
+只修复以下失败项，不改动已通过的核心事件、人物关系和结尾策略：
 
 1. [失败项编号]：[具体修复目标]
 2. [失败项编号]：[具体修复目标]

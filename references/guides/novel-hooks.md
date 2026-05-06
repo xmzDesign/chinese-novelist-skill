@@ -56,7 +56,10 @@ python scripts/novel_hook_guard.py pre-mark-pass ./chinese-novelist/项目文件
 - `readerHookStatus == "pass"`
 - `readerHookScore` 达标
 - `memorableMoment` 非空
-- `chapterTurnPageHook` 非空
+- `chapterTurnPageHook` 非空，语义为追读理由
+- `endingStrategy` 合法
+- `formulaicIssues` 为空
+- `satisfactionBeats` 非空、`shuangwenStatus == "pass"`、`shuangwenIssues` 为空
 - `reviewRoundCount >= requiredReviewPasses`
 - `blockingIssues` 为空
 - `aiTraceIssues` 为空
@@ -115,4 +118,4 @@ session-close hook 不代表章节通过，只负责断点保存。
 python scripts/smoke_novel_flow.py
 ```
 
-该脚本会生成临时 fixture 项目，验证通过项目、缺 QA、待复检、低分和 blocked 风险章节等关键路径。
+该脚本会生成临时 fixture 项目，验证通过项目、缺 QA、待复检、低分、blocked 风险章节、爽文专项和机械化结尾等关键路径。

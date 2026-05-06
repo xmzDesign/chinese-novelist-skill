@@ -34,6 +34,22 @@ VALID_STATUSES = {
     "blocked",
 }
 
+VALID_ENDING_STRATEGIES = {
+    "payoff-close",
+    "soft-question",
+    "decision-point",
+    "emotional-aftertaste",
+    "resource-reveal",
+    "relationship-shift",
+    "threat-approach",
+}
+
+STRONG_SUSPENSE_ENDINGS = {
+    "soft-question",
+    "decision-point",
+    "threat-approach",
+}
+
 
 def add_issue(issues: list[dict[str, str]], level: str, code: str, message: str) -> None:
     """追加一条结构化问题记录。"""
@@ -106,6 +122,49 @@ def check_golden_three_design(
             )
 
 
+def check_ending_distribution(chapters: list[dict[str, Any]], issues: list[dict[str, str]]) -> None:
+    """检查连续章节结尾策略是否过度同质化。"""
+    completed = [
+        chapter
+        for chapter in sorted(chapters, key=lambda item: item.get("chapterNumber") or 0)
+        if chapter.get("status") == "completed"
+    ]
+
+    previous_strategy: str | None = None
+    previous_number: Any = None
+    repeat_count = 0
+    for chapter in completed:
+        strategy = chapter.get("endingStrategy")
+        number = chapter.get("chapterNumber")
+        if not strategy:
+            previous_strategy = None
+            previous_number = None
+            repeat_count = 0
+            continue
+
+        if strategy == previous_strategy:
+            repeat_count += 1
+            if strategy in STRONG_SUSPENSE_ENDINGS:
+                add_issue(
+                    issues,
+                    "error",
+                    "formulaic-strong-ending-repeat",
+                    f"第{previous_number}章和第{number}章连续使用强悬念结尾策略 {strategy}",
+                )
+            if repeat_count >= 3:
+                add_issue(
+                    issues,
+                    "error",
+                    "formulaic-ending-repeat",
+                    f"截至第{number}章连续 {repeat_count} 章使用同一结尾策略 {strategy}",
+                )
+        else:
+            repeat_count = 1
+
+        previous_strategy = strategy
+        previous_number = number
+
+
 def check_chapter_record(
     project_dir: Path,
     chapter: dict[str, Any],
@@ -140,6 +199,8 @@ def check_chapter_record(
         "needsRecheck": chapter.get("needsRecheck"),
         "lastFailureCodes": chapter.get("lastFailureCodes"),
         "repairRound": chapter.get("repairRound", chapter.get("retryCount")),
+        "endingStrategy": chapter.get("endingStrategy"),
+        "shuangwenStatus": chapter.get("shuangwenStatus"),
     }
 
     if status not in VALID_STATUSES:
@@ -202,6 +263,7 @@ def check_chapter_record(
         needs_recheck = chapter.get("needsRecheck")
         last_failure_codes = chapter.get("lastFailureCodes") or []
         repair_round = chapter.get("repairRound", chapter.get("retryCount", 0))
+        ending_strategy = chapter.get("endingStrategy")
 
         if file_path is None or not file_path.exists():
             add_issue(issues, "error", "completed-without-file", f"{label} 已 completed 但章节文件不存在")
@@ -244,7 +306,21 @@ def check_chapter_record(
             add_issue(issues, "error", "completed-missing-memorable-moment", f"{label} 已 completed 但缺少 memorableMoment")
 
         if not chapter.get("chapterTurnPageHook"):
-            add_issue(issues, "error", "completed-missing-turn-page-hook", f"{label} 已 completed 但缺少 chapterTurnPageHook")
+            add_issue(issues, "error", "completed-missing-turn-page-hook", f"{label} 已 completed 但缺少 chapterTurnPageHook/追读理由")
+
+        if ending_strategy not in VALID_ENDING_STRATEGIES:
+            add_issue(issues, "error", "completed-invalid-ending-strategy", f"{label} endingStrategy 非法或缺失: {ending_strategy}")
+
+        if chapter.get("formulaicIssues"):
+            add_issue(issues, "error", "completed-with-formulaic-issues", f"{label} 仍存在机械化结尾问题")
+
+        satisfaction_beats = chapter.get("satisfactionBeats") or []
+        if not satisfaction_beats:
+            add_issue(issues, "error", "completed-missing-satisfaction-beats", f"{label} 缺少 satisfactionBeats")
+        if chapter.get("shuangwenStatus") != "pass":
+            add_issue(issues, "error", "completed-shuangwen-not-pass", f"{label} 爽文专项 shuangwenStatus 不是 pass")
+        if chapter.get("shuangwenIssues"):
+            add_issue(issues, "error", "completed-with-shuangwen-issues", f"{label} 仍存在爽文专项问题")
 
         highlight_issues = chapter.get("highlightIssues") or []
         if highlight_issues:
@@ -319,6 +395,7 @@ def validate_project(project_dir: Path) -> dict[str, Any]:
         chapters = []
 
     check_golden_three_design(project_dir, plan, chapters, issues)
+    check_ending_distribution([chapter for chapter in chapters if isinstance(chapter, dict)], issues)
 
     chapter_results = [
         check_chapter_record(

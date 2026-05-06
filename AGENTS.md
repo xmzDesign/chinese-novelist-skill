@@ -49,6 +49,9 @@ A chapter is not complete unless all are true:
 - literary score reaches the configured threshold
 - `readerHookStatus == "pass"`
 - reader hook score reaches the configured threshold
+- `endingStrategy` is valid
+- `formulaicIssues` is empty
+- `satisfactionBeats` is non-empty and `shuangwenStatus == "pass"`
 - `reviewRoundCount >= requiredReviewPasses`
 - `repairRequired == false`
 - `needsRecheck == false`
