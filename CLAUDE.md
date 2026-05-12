@@ -9,7 +9,7 @@ Do not rely on memory or prose instructions alone. Use the configured hooks and 
 ## Flow
 
 ```text
-read task -> contract -> draft -> humanize -> post-draft hook -> QA -> fix -> recheck -> pre-mark-pass hook -> mark_pass -> session-close hook
+read task -> contract -> scene card -> draft -> humanize -> post-draft hook -> QA -> Editor Gate -> fix -> recheck -> pre-mark-pass hook -> mark_pass -> session-close hook
 ```
 
 Final completion requires:
@@ -47,8 +47,18 @@ Never mark a chapter or whole novel complete while any of these are true:
 - `readerHookStatus != "pass"`
 - `endingStrategy` is missing or invalid
 - `formulaicIssues` is not empty
+- `sceneCardPolicy.enabled == true` and `sceneCardPath` is missing
+- `sceneCardPolicy.enabled == true` and `sceneCardStatus != "pass"`
+- `sceneCardPolicy.enabled == true` and `sceneCardIssues` is not empty
+- `webNovelDesign.enabled == true` and any of `immersionAnchor`, `rationalizationNote`, `coreLoopStep`, or `systemRuleUse` is empty
+- `webNovelDesign.enabled == true` and `webNovelStatus != "pass"`
+- `webNovelDesign.enabled == true` and `webNovelIssues` is not empty
 - `satisfactionBeats` is empty
 - `shuangwenStatus != "pass"`
+- `editorGate.enabled == true` and `editorGateStatus != "pass"`
+- `editorGate.enabled == true` and `editorGateScore` is below threshold
+- `editorGate.enabled == true` and `readerLossRisks` or `editorGateIssues` is not empty
+- `editorGate.enabled == true` and `revisionLevel != "none"`
 - `repairRequired == true`
 - `needsRecheck == true`
 - `lastFailureCodes` is not empty

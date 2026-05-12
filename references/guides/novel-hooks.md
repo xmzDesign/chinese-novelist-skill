@@ -6,8 +6,8 @@ Novel Hook 用来解决模型写完章节后跳过检查、优化、复检的问
 
 | Hook | 触发时机 | 目标 |
 |---|---|---|
-| `post-draft` | 章节正文写完后 | 阻止无正文、无契约、字数不足的章节进入 QA |
-| `pre-mark-pass` | 章节标记 `completed` 前 | 阻止未 QA、未三轮检测、未修复复检的章节通过 |
+| `post-draft` | 章节正文写完后 | 阻止无正文、无契约、无场景卡、字数不足的章节进入 QA |
+| `pre-mark-pass` | 章节标记 `completed` 前 | 阻止未 QA、未 Editor Gate、未三轮检测、未修复复检的章节通过 |
 | `stop` | 汇报全稿完成前 | 阻止模型跳过章节 QA、Phase 4 或总验收 |
 | `session-close` | 每次会话结束或暂停前 | 刷新进度快照，确保下次能从正确断点继续 |
 
@@ -33,6 +33,7 @@ python scripts/novel_hook_guard.py pre-mark-pass ./chinese-novelist/项目文件
 必须通过：
 
 - `contractPath` 指向的章节契约存在
+- 启用 `sceneCardPolicy` 时，`sceneCardPath` 指向的场景卡存在且 `sceneCardStatus == "pass"`
 - `filePath` 指向的章节正文存在
 - 章节字数达到 `minWordsPerChapter`
 
@@ -40,6 +41,7 @@ python scripts/novel_hook_guard.py pre-mark-pass ./chinese-novelist/项目文件
 
 - 字数不足：回到 draft 或 humanize 扩写
 - 缺章节契约：回到 Phase 2 或 contract check 补齐
+- 缺场景卡或场景卡未通过：回到 scene card
 - 缺正文：回到 draft
 
 ## pre-mark-pass Hook
@@ -59,7 +61,10 @@ python scripts/novel_hook_guard.py pre-mark-pass ./chinese-novelist/项目文件
 - `chapterTurnPageHook` 非空，语义为追读理由
 - `endingStrategy` 合法
 - `formulaicIssues` 为空
+- 启用 `sceneCardPolicy` 时，`sceneCardPath` 存在，`sceneCardStatus == "pass"`，`sceneCardIssues` 为空
+- 启用 `webNovelDesign` 时，`immersionAnchor`、`rationalizationNote`、`coreLoopStep`、`systemRuleUse` 非空，`webNovelStatus == "pass"`，`webNovelIssues` 为空
 - `satisfactionBeats` 非空、`shuangwenStatus == "pass"`、`shuangwenIssues` 为空
+- 启用 `editorGate` 时，`editorGateStatus == "pass"`、`editorGateScore` 达标、`readerLossRisks` 和 `editorGateIssues` 为空、`revisionLevel == "none"`
 - `reviewRoundCount >= requiredReviewPasses`
 - `blockingIssues` 为空
 - `aiTraceIssues` 为空
@@ -71,6 +76,8 @@ python scripts/novel_hook_guard.py pre-mark-pass ./chinese-novelist/项目文件
 失败时动作：
 
 - 不是 pass：回到 QA 或 fix
+- 场景卡未通过：回到 scene card
+- Editor Gate 未通过：按 `revisionLevel` 分层修复
 - 检测轮次不足：重新三轮检测
 - 待修复：执行自动修复复检循环
 - 待复检：直接重新三轮检测
@@ -118,4 +125,4 @@ session-close hook 不代表章节通过，只负责断点保存。
 python scripts/smoke_novel_flow.py
 ```
 
-该脚本会生成临时 fixture 项目，验证通过项目、缺 QA、待复检、低分、blocked 风险章节、爽文专项和机械化结尾等关键路径。
+该脚本会生成临时 fixture 项目，验证通过项目、缺 QA、待复检、低分、blocked 风险章节、场景卡、Editor Gate、网文顶层设计、爽文专项和机械化结尾等关键路径。

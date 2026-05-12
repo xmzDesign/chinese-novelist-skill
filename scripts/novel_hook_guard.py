@@ -29,10 +29,35 @@ VALID_ENDING_STRATEGIES = {
     "threat-approach",
 }
 
+WEB_NOVEL_REQUIRED_FIELDS = {
+    "immersionAnchor": "代入锚点",
+    "rationalizationNote": "合理化说明",
+    "coreLoopStep": "Core Loop 步骤",
+    "systemRuleUse": "系统/规则参与方式",
+}
+
 
 def add_issue(issues: list[Issue], level: str, code: str, message: str) -> None:
     """追加一条 hook 问题。"""
     issues.append({"level": level, "code": code, "message": message})
+
+
+def is_web_novel_enabled(plan: dict[str, Any]) -> bool:
+    """仅在写作计划显式包含 webNovelDesign 时启用新增网文顶层门禁。"""
+    config = plan.get("webNovelDesign")
+    return isinstance(config, dict) and config.get("enabled", True) is not False
+
+
+def is_scene_card_enabled(plan: dict[str, Any]) -> bool:
+    """仅在写作计划显式包含 sceneCardPolicy 时启用场景卡门禁。"""
+    config = plan.get("sceneCardPolicy")
+    return isinstance(config, dict) and config.get("enabled", True) is not False
+
+
+def is_editor_gate_enabled(plan: dict[str, Any]) -> bool:
+    """仅在写作计划显式包含 editorGate 时启用编辑审稿门禁。"""
+    config = plan.get("editorGate")
+    return isinstance(config, dict) and config.get("enabled", True) is not False
 
 
 def load_plan(project_dir: Path, issues: list[Issue]) -> dict[str, Any] | None:
@@ -74,9 +99,10 @@ def find_chapter(plan: dict[str, Any], chapter_number: int, issues: list[Issue])
     return None
 
 
-def harness_config(plan: dict[str, Any]) -> dict[str, int]:
+def harness_config(plan: dict[str, Any]) -> dict[str, Any]:
     """读取门槛配置，并提供默认值。"""
     harness = plan.get("harness") or {}
+    editor_gate = plan.get("editorGate") or {}
     return {
         "minWords": int(plan.get("minWordsPerChapter", 3000)),
         "passScore": int(harness.get("passScore", 85)),
@@ -85,6 +111,8 @@ def harness_config(plan: dict[str, Any]) -> dict[str, int]:
         "readerHookPassScore": int(harness.get("readerHookPassScore", 80)),
         "goldenThreeReaderHookPassScore": int(harness.get("goldenThreeReaderHookPassScore", 85)),
         "requiredReviewPasses": int(harness.get("requiredReviewPasses", 3)),
+        "editorGatePassScore": int(editor_gate.get("passScore", 85)),
+        "readerLossRisksMustBeEmpty": editor_gate.get("readerLossRisksMustBeEmpty", True) is not False,
     }
 
 
@@ -128,6 +156,12 @@ def run_post_draft(project_dir: Path, plan: dict[str, Any], chapter: dict[str, A
     issues: list[Issue] = []
     cfg = harness_config(plan)
     require_existing_path(project_dir, chapter, "contractPath", "章节契约", issues)
+    if is_scene_card_enabled(plan):
+        require_existing_path(project_dir, chapter, "sceneCardPath", "场景卡", issues)
+        if chapter.get("sceneCardStatus") != "pass":
+            add_issue(issues, "error", "scene-card-not-pass", f"第{chapter.get('chapterNumber')}章 sceneCardStatus 不是 pass")
+        if chapter.get("sceneCardIssues"):
+            add_issue(issues, "error", "scene-card-issues-exist", f"第{chapter.get('chapterNumber')}章 仍存在场景卡问题")
     check_word_count(project_dir, chapter, cfg["minWords"], issues)
 
     if chapter.get("status") == "pending":
@@ -196,12 +230,46 @@ def run_pre_mark_pass(project_dir: Path, plan: dict[str, Any], chapter: dict[str
         if not passed:
             add_issue(issues, "error", code, message)
 
+    if is_web_novel_enabled(plan):
+        for field, description in WEB_NOVEL_REQUIRED_FIELDS.items():
+            if not chapter.get(field):
+                add_issue(issues, "error", f"missing-{field}", f"{label} 缺少 {field}/{description}")
+        if chapter.get("webNovelStatus") != "pass":
+            add_issue(issues, "error", "web-novel-not-pass", f"{label} webNovelStatus 不是 pass")
+        if chapter.get("webNovelIssues"):
+            add_issue(issues, "error", "web-novel-issues-exist", f"{label} 仍存在网文顶层设计问题")
+
+    if is_scene_card_enabled(plan):
+        require_existing_path(project_dir, chapter, "sceneCardPath", "场景卡", issues)
+        if chapter.get("sceneCardStatus") != "pass":
+            add_issue(issues, "error", "scene-card-not-pass", f"{label} sceneCardStatus 不是 pass")
+        if chapter.get("sceneCardIssues"):
+            add_issue(issues, "error", "scene-card-issues-exist", f"{label} 仍存在场景卡问题")
+
     if not chapter.get("satisfactionBeats"):
         add_issue(issues, "error", "missing-satisfaction-beats", f"{label} 缺少 satisfactionBeats")
     if chapter.get("shuangwenStatus") != "pass":
         add_issue(issues, "error", "shuangwen-not-pass", f"{label} shuangwenStatus 不是 pass")
     if chapter.get("shuangwenIssues"):
         add_issue(issues, "error", "shuangwen-issues-exist", f"{label} 仍存在爽文专项问题")
+
+    if is_editor_gate_enabled(plan):
+        editor_gate_score = chapter.get("editorGateScore")
+        if chapter.get("editorGateStatus") != "pass":
+            add_issue(issues, "error", "editor-gate-not-pass", f"{label} editorGateStatus 不是 pass")
+        if not isinstance(editor_gate_score, (int, float)) or editor_gate_score < cfg["editorGatePassScore"]:
+            add_issue(
+                issues,
+                "error",
+                "editor-gate-score-low",
+                f"{label} editorGateScore 低于 {cfg['editorGatePassScore']}",
+            )
+        if cfg["readerLossRisksMustBeEmpty"] and chapter.get("readerLossRisks"):
+            add_issue(issues, "error", "reader-loss-risks-exist", f"{label} 仍存在读者流失风险")
+        if chapter.get("editorGateIssues"):
+            add_issue(issues, "error", "editor-gate-issues-exist", f"{label} 仍存在 Editor Gate 问题")
+        if chapter.get("revisionLevel") != "none":
+            add_issue(issues, "error", "revision-level-not-none", f"{label} revisionLevel 不是 none")
 
     if number in {1, 2, 3} and chapter.get("goldenThreeRole") not in {"启示", "转折", "小高潮"}:
         add_issue(issues, "error", "missing-golden-role", f"{label} 缺少黄金三章角色")
@@ -246,13 +314,13 @@ def next_action(plan: dict[str, Any]) -> str:
         if status == "blocked":
             continue
         if chapter.get("needsRecheck"):
-            return f"第{number}章 needsRecheck=true，重新执行三轮 QA"
+            return f"第{number}章 needsRecheck=true，重新执行三轮 QA 和 Editor Gate"
         if chapter.get("repairRequired"):
             return f"第{number}章 repairRequired=true，按 lastFailureCodes 定向修复"
         if status in {"failed", "in_revision"}:
             return f"第{number}章处于 {status}，进入 fix -> recheck"
         if status == "in_qa":
-            return f"第{number}章处于 in_qa，执行 QA 三轮检测"
+            return f"第{number}章处于 in_qa，执行 QA 三轮检测和 Editor Gate"
         if status in {"pending", "in_progress"}:
             return f"继续第{number}章 sprint"
     return "所有章节已进入 completed/blocked，可执行 Phase 4 总验收或最终报告"

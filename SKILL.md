@@ -10,16 +10,24 @@ metadata:
 
 # Chinese Novelist: 中文小说创作助手
 
-## 四大黄金法则
+## 网文顶层设计与黄金法则
 
-1. **展示而非讲述** - 用动作和对话表现，不要直接陈述
-2. **冲突驱动剧情** - 每章必须有冲突或转折
-3. **期待承上启下** - 每章必须有追读理由，但不强制硬悬念钩子
-4. **黄金三章留住读者** - 前三章必须完成启示、转折、小高潮
-5. **爽文节拍可兑现** - 所有小说必须有情绪兑现、升级可见和下一步期待
+1. **代入感先成立** - 用现实共鸣、规则、证据和代价合理化虚构中的不合理
+2. **爽点必须兑现** - 让财富、权力、能力、身份、关系或尊严的升级可被读者看见
+3. **期待承上启下** - 每章同时处理填坑与挖坑，但不强制硬悬念钩子
+4. **核心循环不断档** - 主角反复进入问题、解决冲突、获得收益、升级并面对更难挑战
+5. **合理化主角行动** - 主角优先用熟悉领域、能力来源、信息差或规则优势取胜
+6. **系统流有内在规则** - 金手指、系统、重生经验或职业能力必须有触发、边界、代价和升级路径
+7. **黄金三章留住读者** - 前三章必须快速抛出核心梗、优势来源、初始冲突和第一次有限兑现
+8. **展示而非讲述** - 用动作和对话表现，不要直接陈述
+9. **冲突驱动剧情** - 每章必须有冲突或转折
 
 ## 特性说明
 
+- **网文顶层设计**：所有小说默认生成 `04-网文顶层设计.md`，检查代入感、爽点、期待感、核心循环、合理化主角和系统流规则
+- **质量基准前置**：所有小说默认生成 `05-质量基准.md`，先确定目标读者、作品承诺、质量红线和流失雷区
+- **场景卡先行**：每章正文前先生成 `scene-cards/第XX章.md`，确认每个场景都有目的、冲突、信息释放、情绪兑现和局面变化
+- **编辑审稿门禁**：QA 后增加 Editor Gate，按真实读者流失点检查前 300 字、1000 字主冲突、中段空转、兑现和结尾
 - **黄金三章专项**：开篇三章按“启示 → 转折 → 小高潮”设计和验收
 - **文学质量门禁**：反 AI 一票否决，章节必须达到最低文学质量分
 - **追读力门禁**：每章必须有亮点、幽默/反差调味和明确追读理由
@@ -37,14 +45,17 @@ metadata:
 ## Novel Harness 核心原则
 
 1. **先契约后写作**：每章写作前必须存在 `chapter-contracts/第XX章.md`
-2. **先 QA 后完成**：章节只有在 `qaStatus == "pass"` 且无阻塞项时，才能标记 `completed`
-3. **先反 AI 后评分**：`antiAiStatus == "pass"` 且 `literaryScore` 达标后，才允许通过
-4. **先追读后放行**：`readerHookStatus == "pass"`，有 `memorableMoment`、`chapterTurnPageHook` 和合法 `endingStrategy`
-5. **至少三轮检测**：`reviewRoundCount >= 3`，任一轮阻塞失败都不得通过
-6. **修复后必须复检**：`repairRequired == false`、`needsRecheck == false`、`lastFailureCodes` 为空后才可收口
-7. **Hook 失败即阻断**：`post-draft`、`pre-mark-pass`、`stop`、`session-close` 任一失败时，按 Next action 继续执行
-8. **全局状态集中写入**：并行 Agent 不直接改 `01-大纲.md` 和 `02-写作计划.json`，由 Orchestrator/State Keeper 合并
-9. **失败项定向修复**：修复阶段只处理 QA 报告中的失败项，最多 3 轮
+2. **先场景卡后正文**：启用 `sceneCardPolicy` 时，`sceneCardStatus == "pass"` 且 `sceneCardIssues` 为空后才写正文
+3. **先 QA 后完成**：章节只有在 `qaStatus == "pass"` 且无阻塞项时，才能标记 `completed`
+4. **先反 AI 后评分**：`antiAiStatus == "pass"` 且 `literaryScore` 达标后，才允许通过
+5. **先追读后放行**：`readerHookStatus == "pass"`，有 `memorableMoment`、`chapterTurnPageHook` 和合法 `endingStrategy`
+6. **先网文顶层后完成**：启用 `webNovelDesign` 时，`webNovelStatus == "pass"` 且 `webNovelIssues` 为空后才可通过
+7. **先编辑审稿后完成**：启用 `editorGate` 时，`editorGateStatus == "pass"`、`editorGateScore` 达标且无读者流失风险后才可通过
+8. **至少三轮检测**：`reviewRoundCount >= 3`，任一轮阻塞失败都不得通过
+9. **修复后必须复检**：`repairRequired == false`、`needsRecheck == false`、`lastFailureCodes` 为空后才可收口
+10. **Hook 失败即阻断**：`post-draft`、`pre-mark-pass`、`stop`、`session-close` 任一失败时，按 Next action 继续执行
+11. **全局状态集中写入**：并行 Agent 不直接改 `01-大纲.md` 和 `02-写作计划.json`，由 Orchestrator/State Keeper 合并
+12. **失败项定向修复**：修复阶段只处理 QA 报告中的失败项，最多 3 轮
 
 ## 核心流程
 
@@ -64,7 +75,7 @@ metadata:
 
 ### 第二阶段：规划 + 二次确认
 
-创建项目文件夹（`./chinese-novelist/{timestamp}-{小说名称}/`），生成大纲、人物档案、黄金三章设计、章节契约和写作计划 JSON，等待用户确认。 → 详见 [phase2-planning.md](references/flows/phase2-planning.md)
+创建项目文件夹（`./chinese-novelist/{timestamp}-{小说名称}/`），生成质量基准、大纲、人物档案、网文顶层设计、黄金三章设计、章节契约和写作计划 JSON，等待用户确认。 → 详见 [phase2-planning.md](references/flows/phase2-planning.md)
 
 ### 第2.5步：写作模式选择
 
@@ -78,7 +89,7 @@ metadata:
 ### 第三阶段：Novel Harness 创作（无需用户确认）
 > 切记，一旦进入这个阶段，所有过程都禁止向用户确认。用户就是你的读者，你必须把完整的小说创作完成才能与用户报告
 
-根据用户选择的写作模式（串行/并行/Teams）逐章执行 Novel Harness 章节 sprint。每章创作前必须读取章节契约、`01-大纲.md` 对应规划、`00-人物档案.md` 和上一章摘要；写完后必须运行 hook、QA、失败自动定向修复，修复后重新三轮检测。所有小说都必须通过爽文专项和机械化结尾检查。支持中断续写。 → 详见 [phase3-writing.md](references/flows/phase3-writing.md)
+根据用户选择的写作模式（串行/并行/Teams）逐章执行 Novel Harness 章节 sprint。每章创作前必须读取章节契约、`01-大纲.md` 对应规划、`00-人物档案.md`、`04-网文顶层设计.md`、`05-质量基准.md` 和上一章摘要；正文前必须先通过场景卡，写完后必须运行 hook、QA、Editor Gate、失败自动定向修复，修复后重新三轮检测。所有小说都必须通过网文顶层设计、爽文专项、编辑审稿和机械化结尾检查。支持中断续写。 → 详见 [phase3-writing.md](references/flows/phase3-writing.md)
 
 ### 第四阶段：最终总验收（无需用户确认）
 
@@ -86,7 +97,7 @@ metadata:
 
 ## 共享机制
 
-偏好系统、写作计划系统、黄金三章、章节契约、文学质量门禁、追读力门禁、三轮检测、自动修复复检、Novel Hook、QA 评分、进度收口、黄金法则、字数检查脚本和 flow smoke test 等跨阶段共享机制。 → 详见 [shared-infrastructure.md](references/flows/shared-infrastructure.md)
+偏好系统、写作计划系统、质量基准、网文顶层设计、场景卡、编辑审稿、黄金三章、章节契约、文学质量门禁、追读力门禁、三轮检测、自动修复复检、Novel Hook、QA 评分、进度收口、黄金法则、字数检查脚本和 flow smoke test 等跨阶段共享机制。 → 详见 [shared-infrastructure.md](references/flows/shared-infrastructure.md)
 
 ### 运行时初始化
 

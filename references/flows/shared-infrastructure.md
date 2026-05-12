@@ -6,13 +6,56 @@
 
 ## 黄金法则
 
-1. **展示而非讲述** - 用动作和对话表现，不要直接陈述
-2. **冲突驱动剧情** - 每章必须有冲突或转折
+1. **代入感先成立** - 用现实共鸣、规则、证据和代价合理化虚构中的不合理
+2. **爽点必须兑现** - 所有小说都看情绪兑现和升级可见，不按固定爽点数量打卡
 3. **期待承上启下** - 每章必须有追读理由，但结尾不必每章硬悬念
-4. **黄金三章留住读者** - 前三章必须完成启示、转折、小高潮
-5. **失败自动复检** - 验收失败必须定向修复，修复后重新三轮检测
-6. **Hook 拦截偷懒** - 写完、放行、停止、收口都必须运行 Novel Hook
-7. **爽文节拍可验收** - 所有小说都看情绪兑现和升级可见，不按固定爽点数量打卡
+4. **核心循环不断档** - 主角反复进入问题、解决冲突、获得收益、升级并面对更难挑战
+5. **合理化主角行动** - 主角优先用熟悉领域、能力来源、信息差或规则优势取胜
+6. **系统流有内在规则** - 金手指、系统、重生经验或职业能力必须有触发、边界、代价和升级路径
+7. **黄金三章留住读者** - 前三章必须完成启示、转折、小高潮
+8. **展示而非讲述** - 用动作和对话表现，不要直接陈述
+9. **冲突驱动剧情** - 每章必须有冲突或转折
+10. **失败自动复检** - 验收失败必须定向修复，修复后重新三轮检测
+11. **Hook 拦截偷懒** - 写完、放行、停止、收口都必须运行 Novel Hook
+
+## 质量基准、场景卡与编辑审稿
+
+参考：
+- [quality-baseline-guide.md](../guides/quality-baseline-guide.md)
+- [scene-card-template.md](../guides/scene-card-template.md)
+- [editor-gate.md](../guides/editor-gate.md)
+
+所有小说都默认生成 `05-质量基准.md`，先确定目标读者、作品核心承诺、前三章留存理由、质量红线、参考作品学习清单和读者流失雷区。
+
+每章正文前必须生成 `scene-cards/第XX章.md`，先证明每个场景都有：
+
+| 维度 | 要求 |
+|---|---|
+| 场景目的 | 为什么必须有这个场景 |
+| 冲突双方 | 主角对人、环境、规则、危险或内心阻力 |
+| 信息释放 | 新信息、新选择、新阻力、新收益或关系变化 |
+| 爽点/情绪兑现 | 读者在这个场景得到什么 |
+| 流失风险 | 前300字、约1000字、中段和结尾的弃书风险 |
+| 场景变化 | 场景结束时局面如何变化 |
+
+QA 通过后必须执行 Editor Gate。Editor Gate 从真实读者角度检查前 300 字抓力、1000 字内主冲突、中段空转、主角魅力、兑现和结尾期待。Editor Gate 失败时按 `revisionLevel` 回到对应层级修复，结构级失败不得只做文字润色。
+
+## 网文顶层设计
+
+参考：[web-novel-top-design.md](../guides/web-novel-top-design.md)
+
+所有小说都默认生成 `04-网文顶层设计.md`，用于把用户的创意转成可执行的长篇吸引力框架。该文件必须回答：
+
+| 维度 | 必须明确 |
+|---|---|
+| 代入感 | 读者的现实共鸣、情绪出口、不合理设定如何看似合理 |
+| 爽点 | 财富、权力、能力、身份、关系、尊严等欲望如何升级 |
+| 期待感 | 哪些坑要埋、哪些坑要填、每章如何形成下一步期待 |
+| Core Loop | 主角反复做什么获得收益，并进入更难挑战 |
+| 合理化主角 | 主角熟悉领域、能力来源、信息差或经验迁移是什么 |
+| 系统/规则 | 系统、金手指、职业流程或能力体系的触发、边界、代价和升级路径 |
+
+`webNovelDesign` 是质量总纲，不替代 `shuangwenConfig`、`endingPolicy` 和 `goldenThree`。它负责解释“为什么读者愿意代入并继续读”；爽文专项负责检查每章是否有兑现；追读门禁负责检查亮点和下一章期待；黄金三章负责开局留存。
 
 ---
 
@@ -95,11 +138,15 @@
 - **进度跟踪**：记录每章创作状态（pending/in_progress/completed/failed）
 - **写作模式**：记录用户选择的写作模式（serial/subagent-parallel/agent-teams）
 - **章节契约**：记录每章 `contractPath`，让写作和 QA 使用同一套验收标准
+- **质量基准**：记录 `qualityBaseline`，让章节持续服务目标读者和作品承诺
+- **场景卡**：记录 `sceneCardPath`、`sceneCardStatus`、`sceneCardIssues`，确保正文前已经设计有效场景
 - **QA 闭环**：记录 `qaReportPath`、`qaStatus`、`qualityScore`、`blockingIssues`
+- **编辑审稿**：记录 `editorGateStatus`、`editorGateScore`、`readerLossRisks`、`editorGateIssues`、`revisionLevel`
 - **文学质量**：记录 `antiAiStatus`、`literaryScore`、`aiTraceIssues`
 - **追读力**：记录 `readerHookStatus`、`readerHookScore`、`memorableMoment`、`chapterTurnPageHook`、`highlightIssues`
 - **期待管理**：记录 `endingStrategy`、`expectationPayoff`、`expectationNext`、`formulaicIssues`
 - **爽文专项**：记录 `satisfactionBeats`、`shuangwenStatus`、`shuangwenIssues`
+- **网文顶层设计**：记录 `webNovelDesign`、`immersionAnchor`、`rationalizationNote`、`coreLoopStep`、`systemRuleUse`、`webNovelStatus`、`webNovelIssues`
 - **三轮检测**：记录 `reviewRoundCount` 和 `requiredReviewPasses`
 - **自动修复复检**：记录 `repairRequired`、`needsRecheck`、`lastFailureCodes`、`repairRound`、`repairHistory`
 - **Hook 门禁**：记录 `hooksEnabled` 和 `hookGuardScript`，让写完、放行、停止、收口都有脚本拦截
@@ -111,9 +158,12 @@
 ### 与大纲的关系
 
 - `01-大纲.md`：章节规划（核心事件、悬念钩子、承接上章、出场人物、场景列表）+ 章节摘要（连贯性参考）
+- `04-网文顶层设计.md`：全书代入感、爽点、期待感、核心循环、主角合理化和系统/规则设计
+- `05-质量基准.md`：全书目标读者、核心承诺、质量红线、参考学习和流失雷区
 - `chapter-contracts/第XX章.md`：从大纲派生的章节验收契约，是 Writer 和 Evaluator 的共同标准
+- `scene-cards/第XX章.md`：正文前的场景设计，约束每个场景的目的、冲突、信息释放、情绪兑现和局面变化
 - `02-写作计划.json`：章节状态、字数、QA、重试次数、写作模式（机器可读的进度跟踪）
-- Phase 3 创作每章时必须读取章节契约、`01-大纲.md` 对应章节规划、`00-人物档案.md` 和上一章摘要
+- Phase 3 创作每章时必须读取章节契约、`01-大纲.md` 对应章节规划、`00-人物档案.md`、`04-网文顶层设计.md`、`05-质量基准.md`、场景卡和上一章摘要
 - 三者严格对应：JSON 中的 `chapterNumber`、`title`、`contractPath` 必须与大纲章节规划一致
 
 ### 推荐 JSON v2 字段
@@ -122,13 +172,59 @@
 {
   "version": 2,
   "writingMode": "serial",
+  "qualityBaseline": {
+    "enabled": true,
+    "baselinePath": "05-质量基准.md",
+    "corePromise": "作品一句话核心承诺",
+    "targetReader": "核心读者",
+    "openingRetentionHypothesis": "前三章读者为什么留下",
+    "forbiddenPatterns": ["流水账", "空泛抒情", "低智反派", "机械钩子"]
+  },
+  "sceneCardPolicy": {
+    "enabled": true,
+    "directory": "scene-cards",
+    "requiredBeforeDraft": true
+  },
+  "editorGate": {
+    "enabled": true,
+    "passScore": 85,
+    "readerLossRisksMustBeEmpty": true
+  },
   "endingPolicy": {
     "avoidFormulaicEndings": true,
     "allowClosedChapterEndings": true,
     "maxConsecutiveStrongSuspenseEndings": 1
   },
+  "webNovelDesign": {
+    "enabled": true,
+    "designPath": "04-网文顶层设计.md",
+    "immersionEngine": {
+      "readerResonance": "读者能共鸣的现实压力、委屈、欲望或关系困境",
+      "emotionalOutlet": "主角替读者完成的反击、选择或获得",
+      "unreasonablePremise": "本书最夸张或反常识的设定",
+      "rationalizationRule": "用规则、证据、代价和旁人反应让不合理看似合理"
+    },
+    "coreLoop": {
+      "loopName": "主角反复行动并升级的循环名称",
+      "steps": ["进入问题/区域", "解决冲突", "获得收益", "升级", "进入更难问题/区域"],
+      "rewardTypes": ["能力", "资源", "身份", "关系", "线索"]
+    },
+    "protagonistLogic": {
+      "familiarDomain": "主角熟悉领域或经验来源",
+      "advantageSource": "金手指/能力/信息差/资源/身份/经验",
+      "avoidOutOfDomainYY": true
+    },
+    "systemLogic": {
+      "exists": true,
+      "rules": ["触发条件", "奖励边界", "代价限制", "升级路径", "情节参与方式"]
+    },
+    "expectationPolicy": {
+      "pitFillLedger": true,
+      "eachChapterMustPayoffAndUpgradeExpectation": true
+    }
+  },
   "shuangwenConfig": {
-    "enabledWhenContentModeIsShuangwen": true,
+    "enabledForAllNovels": true,
     "cadence": "每章至少一次有效情绪兑现，但不固定爽点数量"
   },
   "harness": {
@@ -158,6 +254,7 @@
       "title": "章节标题",
       "filePath": "第01章-章节标题.md",
       "contractPath": "chapter-contracts/第01章.md",
+      "sceneCardPath": "scene-cards/第01章.md",
       "qaReportPath": "qa/第01章.md",
       "summaryPath": "summaries/第01章.md",
       "continuityReportPath": "continuity/第01章.md",
@@ -176,12 +273,25 @@
       "memorableMoment": "",
       "chapterTurnPageHook": "",
       "endingStrategy": "resource-reveal",
+      "immersionAnchor": "",
+      "rationalizationNote": "",
+      "coreLoopStep": "",
+      "systemRuleUse": "",
       "expectationPayoff": "",
       "expectationNext": "",
       "satisfactionBeats": [],
       "formulaicIssues": [],
+      "sceneCardStatus": null,
+      "sceneCardIssues": [],
+      "webNovelStatus": null,
+      "webNovelIssues": [],
       "shuangwenStatus": null,
       "shuangwenIssues": [],
+      "editorGateStatus": null,
+      "editorGateScore": null,
+      "readerLossRisks": [],
+      "editorGateIssues": [],
+      "revisionLevel": null,
       "humorBeat": "",
       "highlightIssues": [],
       "reviewRoundCount": 0,
@@ -225,7 +335,10 @@ pending -> in_progress -> in_qa -> completed
 - `chapterTurnPageHook` 非空
 - `endingStrategy` 合法
 - `formulaicIssues` 为空
+- 若 `sceneCardPolicy.enabled == true`：`sceneCardPath` 文件存在，`sceneCardStatus == "pass"`，`sceneCardIssues` 为空
+- 若 `webNovelDesign.enabled == true`：`immersionAnchor`、`rationalizationNote`、`coreLoopStep`、`systemRuleUse` 非空，`webNovelStatus == "pass"`，`webNovelIssues` 为空
 - `satisfactionBeats` 非空、`shuangwenStatus == "pass"`、`shuangwenIssues` 为空
+- 若 `editorGate.enabled == true`：`editorGateStatus == "pass"`，`editorGateScore >= 85`，`readerLossRisks`、`editorGateIssues` 为空，`revisionLevel == "none"`
 - `highlightIssues` 为空
 - `reviewRoundCount >= 3`
 - `blockingIssues` 为空
@@ -314,7 +427,7 @@ pending -> in_progress -> in_qa -> completed
 
 规则：
 
-- 每轮都必须独立检查：章节契约、反 AI、文学质量、追读理由、反套路结尾、爽文专项（如适用）、黄金三章（如适用）
+- 每轮都必须独立检查：章节契约、场景卡、反 AI、文学质量、追读理由、网文顶层设计、反套路结尾、爽文专项、Editor Gate、黄金三章（如适用）
 - 最终结论采用保守聚合
 - 任一轮出现阻塞失败，最终不得 `PASS`
 - 文学质量分和追读力分采用三轮最低分
@@ -340,7 +453,7 @@ pending -> in_progress -> in_qa -> completed
 |---|---|
 | `repairRequired` | 当前是否仍有失败项需要修复 |
 | `needsRecheck` | 修复已完成，是否等待重新三轮检测 |
-| `lastFailureCodes` | 最近一次失败项编号，如 `B-01`、`A-02`、`R-04`、`G-01`、`C-03` |
+| `lastFailureCodes` | 最近一次失败项编号，如 `B-01`、`SC-01`、`A-02`、`R-04`、`W-03`、`E-01`、`G-01`、`C-03` |
 | `repairRound` | 已执行的自动修复轮次 |
 | `repairHistory` | 每轮失败项、修复摘要、复检结果 |
 | `lastRepairAt` | 最近一次修复完成时间 |
@@ -349,8 +462,8 @@ pending -> in_progress -> in_qa -> completed
 
 1. 任一验收失败时，章节进入 `failed` 或 `in_revision`，写入 `repairRequired: true` 和 `lastFailureCodes`。
 2. Fix Writer 只按 `lastFailureCodes` 修复，修复后进入 `in_qa`，写入 `needsRecheck: true`。
-3. State Keeper 必须将旧的 `qaStatus`、`qualityScore`、`antiAiStatus`、`literaryScore`、`readerHookStatus`、`readerHookScore`、`reviewRoundCount` 置空或归零。
-4. Evaluator 重新读取修复后的正文，重新执行至少 3 轮检测。
+3. State Keeper 必须将旧的 `qaStatus`、`qualityScore`、`antiAiStatus`、`literaryScore`、`readerHookStatus`、`readerHookScore`、`webNovelStatus`、`shuangwenStatus`、`editorGateStatus`、`editorGateScore`、`reviewRoundCount` 置空或归零；结构级失败还必须作废 `sceneCardStatus`。
+4. Evaluator 和 Editor Gate 重新读取修复后的正文，重新执行至少 3 轮检测和编辑审稿。
 5. 复检通过后，清空 `repairRequired`、`needsRecheck`、`lastFailureCodes` 和 `blockingIssues`，才允许 `completed`。
 6. `repairRound >= maxAutoRepairRounds` 且仍失败时，章节标记 `blocked`。
 
@@ -379,8 +492,8 @@ python scripts/novel_hook_guard.py session-close ./chinese-novelist/项目文件
 
 硬规则：
 
-- Step 3 draft 后必须运行 `post-draft`。
-- Step 7 mark_pass 前必须运行 `pre-mark-pass`。
+- draft/humanize 后必须运行 `post-draft`。
+- mark_pass 前必须运行 `pre-mark-pass`。
 - Phase 4 汇报完成前必须运行 `stop`。
 - 每章完成或会话暂停前必须运行 `session-close`。
 - hook 失败时，按输出的 `Next action` 自动回到对应步骤，不向用户确认。
@@ -438,12 +551,14 @@ python scripts/novel_hook_guard.py session-close ./chinese-novelist/项目文件
 | 维度 | 分值 |
 |---|---:|
 | 字数与结构 | 10 |
-| 大纲履约 | 20 |
-| 承接与连贯 | 15 |
-| 人物一致性 | 15 |
+| 场景卡履约 | 10 |
+| 大纲履约 | 10 |
+| 承接与连贯 | 10 |
+| 人物一致性 | 10 |
 | 冲突与节奏 | 10 |
 | 对话质量 | 10 |
 | 结尾策略与追读理由 | 10 |
+| 网文顶层设计履约 | 10 |
 | 去 AI 味与文字质感 | 10 |
 
 判定：
@@ -451,6 +566,7 @@ python scripts/novel_hook_guard.py session-close ./chinese-novelist/项目文件
 - `PASS`：总分 >= 85，且无阻塞项
 - `PARTIAL`：总分 70-84，或存在非阻塞失败项
 - `FAIL`：总分 < 70，或存在任一阻塞项
+- Editor Gate 单独评分，启用时必须 `editorGateStatus == "pass"` 且 `editorGateScore` 达标。
 
 Evaluator 必须给出证据和修复建议，不能只输出主观评价。
 

@@ -5,11 +5,13 @@
 ## 生命周期图
 
 ```text
-draft
-  -> post-draft hook
+scene card
+  -> draft
   -> humanize
+  -> post-draft hook
   -> qa（三轮检测）
-  -> fail ? fix -> recheck（三轮检测）
+  -> Editor Gate
+  -> fail ? fix -> recheck（三轮检测 + Editor Gate）
   -> pre-mark-pass hook
   -> mark_pass
   -> session-close hook
@@ -41,9 +43,12 @@ python scripts/novel_hook_guard.py pre-mark-pass ./chinese-novelist/项目文件
 失败时根据输出回到：
 
 - QA 三轮检测
+- 场景卡重做
+- Editor Gate 分层修复
 - 自动修复复检
 - 反 AI 润色
 - 追读力补强
+- 网文顶层设计或爽文专项修复
 - 黄金三章专项修复
 
 ### 3. 每章收口
@@ -81,6 +86,8 @@ python scripts/novel_hook_guard.py stop ./chinese-novelist/项目文件夹
 
 - 有章节仍为 `pending`、`in_progress`、`in_qa`、`in_revision` 或 `failed`
 - 有章节 `qaStatus != "pass"` 且未 `blocked`
+- 有章节启用场景卡但 `sceneCardStatus != "pass"` 且未 `blocked`
+- 有章节启用 Editor Gate 但 `editorGateStatus != "pass"` 且未 `blocked`
 - 有章节检测轮次不足 3
 - 有章节仍需修复或复检
 - 项目结构校验存在 error

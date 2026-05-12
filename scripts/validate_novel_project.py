@@ -4,7 +4,7 @@
 Novel Harness 项目结构校验脚本
 
 检查小说项目是否具备章节契约、QA 报告、摘要、连续性材料和写作计划状态。
-该脚本只检查文学质量、追读力和自动修复复检字段是否达标，不直接判断正文文学质量。
+该脚本只检查质量基准、场景卡、网文顶层设计、文学质量、追读力、Editor Gate 和自动修复复检字段是否达标，不直接判断正文文学质量。
 """
 
 import argparse
@@ -50,10 +50,41 @@ STRONG_SUSPENSE_ENDINGS = {
     "threat-approach",
 }
 
+WEB_NOVEL_REQUIRED_FIELDS = {
+    "immersionAnchor": "代入锚点",
+    "rationalizationNote": "合理化说明",
+    "coreLoopStep": "Core Loop 步骤",
+    "systemRuleUse": "系统/规则参与方式",
+}
+
 
 def add_issue(issues: list[dict[str, str]], level: str, code: str, message: str) -> None:
     """追加一条结构化问题记录。"""
     issues.append({"level": level, "code": code, "message": message})
+
+
+def is_web_novel_enabled(plan: dict[str, Any]) -> bool:
+    """仅在写作计划显式包含 webNovelDesign 时启用新增网文顶层门禁。"""
+    config = plan.get("webNovelDesign")
+    return isinstance(config, dict) and config.get("enabled", True) is not False
+
+
+def is_quality_baseline_enabled(plan: dict[str, Any]) -> bool:
+    """仅在写作计划显式包含 qualityBaseline 时启用质量基准文件校验。"""
+    config = plan.get("qualityBaseline")
+    return isinstance(config, dict) and config.get("enabled", True) is not False
+
+
+def is_scene_card_enabled(plan: dict[str, Any]) -> bool:
+    """仅在写作计划显式包含 sceneCardPolicy 时启用场景卡门禁。"""
+    config = plan.get("sceneCardPolicy")
+    return isinstance(config, dict) and config.get("enabled", True) is not False
+
+
+def is_editor_gate_enabled(plan: dict[str, Any]) -> bool:
+    """仅在写作计划显式包含 editorGate 时启用编辑审稿门禁。"""
+    config = plan.get("editorGate")
+    return isinstance(config, dict) and config.get("enabled", True) is not False
 
 
 def load_plan(project_dir: Path, issues: list[dict[str, str]]) -> dict[str, Any] | None:
@@ -122,6 +153,42 @@ def check_golden_three_design(
             )
 
 
+def check_web_novel_design(project_dir: Path, plan: dict[str, Any], issues: list[dict[str, str]]) -> None:
+    """检查网文顶层设计文件是否存在。"""
+    if not is_web_novel_enabled(plan):
+        return
+
+    config = plan.get("webNovelDesign") or {}
+    design_path = resolve_project_path(project_dir, config.get("designPath", "04-网文顶层设计.md"))
+    if design_path is None or not design_path.exists():
+        add_issue(issues, "error", "missing-web-novel-design", f"缺少网文顶层设计: {design_path or project_dir / '04-网文顶层设计.md'}")
+
+
+def check_quality_baseline(project_dir: Path, plan: dict[str, Any], issues: list[dict[str, str]]) -> None:
+    """检查质量基准文件是否存在。"""
+    if not is_quality_baseline_enabled(plan):
+        return
+
+    config = plan.get("qualityBaseline") or {}
+    baseline_path = resolve_project_path(project_dir, config.get("baselinePath", "05-质量基准.md"))
+    if baseline_path is None or not baseline_path.exists():
+        add_issue(issues, "error", "missing-quality-baseline", f"缺少质量基准: {baseline_path or project_dir / '05-质量基准.md'}")
+
+
+def check_scene_card_directory(project_dir: Path, plan: dict[str, Any], issues: list[dict[str, str]]) -> None:
+    """检查场景卡目录是否存在。"""
+    if not is_scene_card_enabled(plan):
+        return
+
+    config = plan.get("sceneCardPolicy") or {}
+    directory = config.get("directory", "scene-cards")
+    path = project_dir / str(directory)
+    if not path.exists():
+        add_issue(issues, "error", "missing-scene-card-dir", f"缺少场景卡目录: {path}")
+    elif not path.is_dir():
+        add_issue(issues, "error", "scene-card-not-dir", f"场景卡路径不是目录: {path}")
+
+
 def check_ending_distribution(chapters: list[dict[str, Any]], issues: list[dict[str, str]]) -> None:
     """检查连续章节结尾策略是否过度同质化。"""
     completed = [
@@ -176,6 +243,11 @@ def check_chapter_record(
     golden_three_reader_hook_pass_score: int,
     required_review_passes: int,
     max_auto_repair_rounds: int,
+    web_novel_enabled: bool,
+    scene_card_enabled: bool,
+    editor_gate_enabled: bool,
+    editor_gate_pass_score: int,
+    reader_loss_risks_must_be_empty: bool,
     issues: list[dict[str, str]],
 ) -> dict[str, Any]:
     """检查单章记录与相关文件。"""
@@ -200,7 +272,11 @@ def check_chapter_record(
         "lastFailureCodes": chapter.get("lastFailureCodes"),
         "repairRound": chapter.get("repairRound", chapter.get("retryCount")),
         "endingStrategy": chapter.get("endingStrategy"),
+        "sceneCardStatus": chapter.get("sceneCardStatus"),
+        "webNovelStatus": chapter.get("webNovelStatus"),
         "shuangwenStatus": chapter.get("shuangwenStatus"),
+        "editorGateStatus": chapter.get("editorGateStatus"),
+        "editorGateScore": chapter.get("editorGateScore"),
     }
 
     if status not in VALID_STATUSES:
@@ -210,6 +286,7 @@ def check_chapter_record(
     qa_path = resolve_project_path(project_dir, chapter.get("qaReportPath"))
     summary_path = resolve_project_path(project_dir, chapter.get("summaryPath"))
     file_path = resolve_project_path(project_dir, chapter.get("filePath"))
+    scene_card_path = resolve_project_path(project_dir, chapter.get("sceneCardPath"))
 
     if contract_path is None:
         add_issue(issues, "error", "missing-contract-path", f"{label} 缺少 contractPath")
@@ -314,6 +391,25 @@ def check_chapter_record(
         if chapter.get("formulaicIssues"):
             add_issue(issues, "error", "completed-with-formulaic-issues", f"{label} 仍存在机械化结尾问题")
 
+        if scene_card_enabled:
+            if scene_card_path is None:
+                add_issue(issues, "error", "completed-missing-scene-card-path", f"{label} 缺少 sceneCardPath")
+            elif not scene_card_path.exists():
+                add_issue(issues, "error", "completed-missing-scene-card", f"{label} 缺少场景卡: {scene_card_path}")
+            if chapter.get("sceneCardStatus") != "pass":
+                add_issue(issues, "error", "completed-scene-card-not-pass", f"{label} sceneCardStatus 不是 pass")
+            if chapter.get("sceneCardIssues"):
+                add_issue(issues, "error", "completed-with-scene-card-issues", f"{label} 仍存在场景卡问题")
+
+        if web_novel_enabled:
+            for field, description in WEB_NOVEL_REQUIRED_FIELDS.items():
+                if not chapter.get(field):
+                    add_issue(issues, "error", f"completed-missing-{field}", f"{label} 缺少 {field}/{description}")
+            if chapter.get("webNovelStatus") != "pass":
+                add_issue(issues, "error", "completed-web-novel-not-pass", f"{label} 网文顶层设计 webNovelStatus 不是 pass")
+            if chapter.get("webNovelIssues"):
+                add_issue(issues, "error", "completed-with-web-novel-issues", f"{label} 仍存在网文顶层设计问题")
+
         satisfaction_beats = chapter.get("satisfactionBeats") or []
         if not satisfaction_beats:
             add_issue(issues, "error", "completed-missing-satisfaction-beats", f"{label} 缺少 satisfactionBeats")
@@ -321,6 +417,24 @@ def check_chapter_record(
             add_issue(issues, "error", "completed-shuangwen-not-pass", f"{label} 爽文专项 shuangwenStatus 不是 pass")
         if chapter.get("shuangwenIssues"):
             add_issue(issues, "error", "completed-with-shuangwen-issues", f"{label} 仍存在爽文专项问题")
+
+        if editor_gate_enabled:
+            editor_gate_score = chapter.get("editorGateScore")
+            if chapter.get("editorGateStatus") != "pass":
+                add_issue(issues, "error", "completed-editor-gate-not-pass", f"{label} editorGateStatus 不是 pass")
+            if not isinstance(editor_gate_score, (int, float)) or editor_gate_score < editor_gate_pass_score:
+                add_issue(
+                    issues,
+                    "error",
+                    "completed-editor-gate-score-low",
+                    f"{label} editorGateScore 低于 {editor_gate_pass_score}",
+                )
+            if reader_loss_risks_must_be_empty and chapter.get("readerLossRisks"):
+                add_issue(issues, "error", "completed-with-reader-loss-risks", f"{label} 仍存在读者流失风险")
+            if chapter.get("editorGateIssues"):
+                add_issue(issues, "error", "completed-with-editor-gate-issues", f"{label} 仍存在 Editor Gate 问题")
+            if chapter.get("revisionLevel") != "none":
+                add_issue(issues, "error", "completed-revision-level-not-none", f"{label} revisionLevel 不是 none")
 
         highlight_issues = chapter.get("highlightIssues") or []
         if highlight_issues:
@@ -388,6 +502,12 @@ def validate_project(project_dir: Path) -> dict[str, Any]:
     golden_three_reader_hook_pass_score = int(harness.get("goldenThreeReaderHookPassScore", 85))
     required_review_passes = int(harness.get("requiredReviewPasses", 3))
     max_auto_repair_rounds = int(harness.get("maxAutoRepairRounds", harness.get("maxRevisionRounds", 3)))
+    web_novel_enabled = is_web_novel_enabled(plan)
+    scene_card_enabled = is_scene_card_enabled(plan)
+    editor_gate_enabled = is_editor_gate_enabled(plan)
+    editor_gate = plan.get("editorGate") or {}
+    editor_gate_pass_score = int(editor_gate.get("passScore", 85))
+    reader_loss_risks_must_be_empty = editor_gate.get("readerLossRisksMustBeEmpty", True) is not False
     chapters = plan.get("chapters")
 
     if not isinstance(chapters, list):
@@ -395,6 +515,9 @@ def validate_project(project_dir: Path) -> dict[str, Any]:
         chapters = []
 
     check_golden_three_design(project_dir, plan, chapters, issues)
+    check_quality_baseline(project_dir, plan, issues)
+    check_scene_card_directory(project_dir, plan, issues)
+    check_web_novel_design(project_dir, plan, issues)
     check_ending_distribution([chapter for chapter in chapters if isinstance(chapter, dict)], issues)
 
     chapter_results = [
@@ -409,6 +532,11 @@ def validate_project(project_dir: Path) -> dict[str, Any]:
             golden_three_reader_hook_pass_score,
             required_review_passes,
             max_auto_repair_rounds,
+            web_novel_enabled,
+            scene_card_enabled,
+            editor_gate_enabled,
+            editor_gate_pass_score,
+            reader_loss_risks_must_be_empty,
             issues,
         )
         for chapter in chapters

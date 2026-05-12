@@ -3,7 +3,7 @@
 """
 Novel Harness Flow Smoke Test
 
-用临时 fixture 项目验证 hook guard 和项目校验脚本能拦住漏检、漏修、漏复检。
+用临时 fixture 项目验证 hook guard 和项目校验脚本能拦住漏检、漏修、漏复检、场景卡、Editor Gate 和网文顶层设计缺口。
 """
 
 import json
@@ -40,6 +40,52 @@ def base_plan() -> dict[str, Any]:
             "avoidFormulaicEndings": True,
             "allowClosedChapterEndings": True,
         },
+        "qualityBaseline": {
+            "enabled": True,
+            "baselinePath": "05-质量基准.md",
+            "corePromise": "少年用观察力拆穿危险",
+            "targetReader": "喜欢快节奏悬疑爽感的读者",
+            "openingRetentionHypothesis": "前三章连续兑现观察力、危险升级和有限胜利",
+            "forbiddenPatterns": ["流水账", "空泛抒情", "低智反派", "机械钩子"],
+        },
+        "sceneCardPolicy": {
+            "enabled": True,
+            "directory": "scene-cards",
+            "requiredBeforeDraft": True,
+        },
+        "editorGate": {
+            "enabled": True,
+            "passScore": 85,
+            "readerLossRisksMustBeEmpty": True,
+        },
+        "webNovelDesign": {
+            "enabled": True,
+            "designPath": "04-网文顶层设计.md",
+            "immersionEngine": {
+                "readerResonance": "读者熟悉的少年被误判处境",
+                "emotionalOutlet": "主角用观察力证明自己",
+                "unreasonablePremise": "街口刀痕预示袭击方向",
+                "rationalizationRule": "用现场痕迹和旁人反应合理化",
+            },
+            "coreLoop": {
+                "loopName": "发现异常-破局-升级",
+                "steps": ["进入问题", "解决冲突", "获得收益", "升级", "进入更难问题"],
+                "rewardTypes": ["线索", "认可"],
+            },
+            "protagonistLogic": {
+                "familiarDomain": "街巷观察",
+                "advantageSource": "观察力和信息差",
+                "avoidOutOfDomainYY": True,
+            },
+            "systemLogic": {
+                "exists": False,
+                "rules": ["以现场证据和人物反应作为规则"],
+            },
+            "expectationPolicy": {
+                "pitFillLedger": True,
+                "eachChapterMustPayoffAndUpgradeExpectation": True,
+            },
+        },
         "shuangwenConfig": {
             "cadence": "每章至少一次有效情绪兑现",
             "protagonistAdvantage": "有限优势",
@@ -71,6 +117,7 @@ def base_plan() -> dict[str, Any]:
                 "title": "烟火",
                 "filePath": "第01章-烟火.md",
                 "contractPath": "chapter-contracts/第01章.md",
+                "sceneCardPath": "scene-cards/第01章.md",
                 "qaReportPath": "qa/第01章.md",
                 "summaryPath": "summaries/第01章.md",
                 "continuityReportPath": "continuity/第01章.md",
@@ -89,12 +136,25 @@ def base_plan() -> dict[str, Any]:
                 "memorableMoment": "主角从墙上刀痕意识到今晚的危机",
                 "chapterTurnPageHook": "墙上的刀痕是谁留下的",
                 "endingStrategy": "resource-reveal",
+                "immersionAnchor": "少年被朋友误判，却先看见危险证据",
+                "rationalizationNote": "刀痕、灯火和朋友反应共同证明异常，不靠旁白硬说",
+                "coreLoopStep": "发现异常并获得第一条线索",
+                "systemRuleUse": "非系统文；以街巷观察和现场证据作为规则优势",
                 "expectationPayoff": "兑现主角发现异常的观察力",
                 "expectationNext": "刀痕背后的袭击者仍未现身",
                 "satisfactionBeats": ["主角用刀痕反推袭击方向，让误判他的朋友当场闭嘴"],
                 "formulaicIssues": [],
+                "sceneCardStatus": "pass",
+                "sceneCardIssues": [],
+                "webNovelStatus": "pass",
+                "webNovelIssues": [],
                 "shuangwenStatus": "pass",
                 "shuangwenIssues": [],
+                "editorGateStatus": "pass",
+                "editorGateScore": 88,
+                "readerLossRisks": [],
+                "editorGateIssues": [],
+                "revisionLevel": "none",
                 "humorBeat": "朋友嘴损地骂主角来晚",
                 "highlightIssues": [],
                 "reviewRoundCount": 3,
@@ -112,19 +172,23 @@ def base_plan() -> dict[str, Any]:
     }
 
 
-def write_project(project_dir: Path, plan: dict[str, Any], *, omit_qa: bool = False) -> None:
+def write_project(project_dir: Path, plan: dict[str, Any], *, omit_qa: bool = False, omit_scene_card: bool = False) -> None:
     """把写作计划和相关文件写入临时项目。"""
-    for dirname in ["chapter-contracts", "qa", "summaries", "continuity", "progress"]:
+    for dirname in ["chapter-contracts", "scene-cards", "qa", "summaries", "continuity", "progress"]:
         (project_dir / dirname).mkdir(parents=True, exist_ok=True)
 
     (project_dir / "00-人物档案.md").write_text("# 人物档案\n\n主角：少年，有锋芒。", encoding="utf-8")
     (project_dir / "01-大纲.md").write_text("# 大纲\n\n第1章：烟火。", encoding="utf-8")
     (project_dir / "03-黄金三章.md").write_text("# 黄金三章\n\n第1章启示。", encoding="utf-8")
+    (project_dir / "04-网文顶层设计.md").write_text("# 网文顶层设计\n\n代入锚点、Core Loop 和规则优势齐全。", encoding="utf-8")
+    (project_dir / "05-质量基准.md").write_text("# 质量基准\n\n目标读者、作品承诺和流失雷区齐全。", encoding="utf-8")
     for chapter in plan["chapters"]:
         number = chapter["chapterNumber"]
         title = chapter["title"]
         chapter_no = f"第{number:02d}章"
         (project_dir / "chapter-contracts" / f"{chapter_no}.md").write_text(f"# {chapter_no}章节契约\n\n验收标准齐全。", encoding="utf-8")
+        if not (omit_scene_card and number == 1):
+            (project_dir / "scene-cards" / f"{chapter_no}.md").write_text(f"# {chapter_no}场景卡\n\nsceneCardStatus: pass。", encoding="utf-8")
         if not (omit_qa and number == 1):
             (project_dir / "qa" / f"{chapter_no}.md").write_text(f"# {chapter_no} QA 报告\n\nPASS。", encoding="utf-8")
         (project_dir / "summaries" / f"{chapter_no}.md").write_text(f"# {chapter_no}摘要\n\n主角发现刀痕。", encoding="utf-8")
@@ -170,6 +234,7 @@ def make_blocked_plan() -> dict[str, Any]:
             "title": "堵点",
             "filePath": "第02章-堵点.md",
             "contractPath": "chapter-contracts/第02章.md",
+            "sceneCardPath": "scene-cards/第02章.md",
             "qaReportPath": "qa/第02章.md",
             "summaryPath": "summaries/第02章.md",
             "continuityReportPath": "continuity/第02章.md",
@@ -200,6 +265,7 @@ def make_formulaic_plan() -> dict[str, Any]:
             "title": "回声",
             "filePath": "第02章-回声.md",
             "contractPath": "chapter-contracts/第02章.md",
+            "sceneCardPath": "scene-cards/第02章.md",
             "qaReportPath": "qa/第02章.md",
             "summaryPath": "summaries/第02章.md",
             "continuityReportPath": "continuity/第02章.md",
@@ -283,6 +349,47 @@ def run_smoke_tests() -> None:
             run_command([str(HOOK_SCRIPT), "pre-mark-pass", str(satisfaction_missing_dir), "--chapter", "1"]),
             False,
             "missing-satisfaction-beats",
+        )
+
+        web_novel_missing_dir = tmp_root / "fixture-web-novel-missing"
+        web_novel_missing_dir.mkdir()
+        web_novel_missing_plan = base_plan()
+        web_novel_missing_plan["chapters"][0]["coreLoopStep"] = ""
+        write_project(web_novel_missing_dir, web_novel_missing_plan)
+        assert_result(
+            "web-novel-missing/pre-mark-pass",
+            run_command([str(HOOK_SCRIPT), "pre-mark-pass", str(web_novel_missing_dir), "--chapter", "1"]),
+            False,
+            "missing-coreLoopStep",
+        )
+
+        scene_card_missing_dir = tmp_root / "fixture-scene-card-missing"
+        scene_card_missing_dir.mkdir()
+        scene_card_missing_plan = base_plan()
+        scene_card_missing_plan["chapters"][0]["sceneCardStatus"] = "fail"
+        scene_card_missing_plan["chapters"][0]["sceneCardIssues"] = ["SC-03"]
+        write_project(scene_card_missing_dir, scene_card_missing_plan, omit_scene_card=True)
+        assert_result(
+            "scene-card-missing/pre-mark-pass",
+            run_command([str(HOOK_SCRIPT), "pre-mark-pass", str(scene_card_missing_dir), "--chapter", "1"]),
+            False,
+            "missing-sceneCardPath-file",
+        )
+
+        editor_gate_fail_dir = tmp_root / "fixture-editor-gate-fail"
+        editor_gate_fail_dir.mkdir()
+        editor_gate_fail_plan = base_plan()
+        editor_gate_fail_plan["chapters"][0]["editorGateStatus"] = "fail"
+        editor_gate_fail_plan["chapters"][0]["editorGateScore"] = 70
+        editor_gate_fail_plan["chapters"][0]["readerLossRisks"] = ["前300字没有行动或异常"]
+        editor_gate_fail_plan["chapters"][0]["editorGateIssues"] = ["E-01"]
+        editor_gate_fail_plan["chapters"][0]["revisionLevel"] = "plot"
+        write_project(editor_gate_fail_dir, editor_gate_fail_plan)
+        assert_result(
+            "editor-gate-fail/pre-mark-pass",
+            run_command([str(HOOK_SCRIPT), "pre-mark-pass", str(editor_gate_fail_dir), "--chapter", "1"]),
+            False,
+            "editor-gate-not-pass",
         )
 
         formulaic_dir = tmp_root / "fixture-formulaic"

@@ -22,20 +22,25 @@
 
 职责：
 - 根据用户配置生成人物档案、大纲、故事弧分片。
+- 生成 `04-网文顶层设计.md`，明确代入感、爽点、期待感、Core Loop、合理化主角和系统/规则逻辑。
+- 生成 `05-质量基准.md`，明确目标读者、作品承诺、质量红线、参考作品学习清单和读者流失雷区。
 - 为每章生成可验收的章节契约。
 - 保证章节契约和 `02-写作计划.json` 的章节编号、标题、文件路径一致。
 
 主要产物：
 - `00-人物档案.md`
 - `01-大纲.md`
+- `04-网文顶层设计.md`
+- `05-质量基准.md`
 - `chapter-contracts/第XX章.md`
 
 ## Chapter Writer
 
 职责：
 - 只写自己被分配的章节正文。
-- 写作前读取章节契约、大纲对应行、人物档案、上一章摘要。
-- 严格按契约完成核心事件、承接、冲突、人物行为、结尾策略和追读理由。
+- 写作前读取章节契约、大纲对应行、人物档案、`04-网文顶层设计.md`、`05-质量基准.md`、上一章摘要。
+- 正文前先生成并自检 `scene-cards/第XX章.md`，确认每个场景都有目的、冲突、信息释放、情绪兑现和局面变化。
+- 严格按契约和场景卡完成核心事件、承接、冲突、人物行为、代入锚点、Core Loop 步骤、系统/规则参与、结尾策略和追读理由。
 - 必须写出有因果的 `satisfactionBeats`，不按固定数量堆爽点。
 
 禁止：
@@ -73,7 +78,10 @@
 职责：
 - 只按章节契约、用户特殊要求和质量量表评分。
 - 执行 [literary-quality-gate.md](../guides/literary-quality-gate.md) 的反 AI 门禁和文学质量评分。
+- 执行 [scene-card-template.md](../guides/scene-card-template.md) 的场景卡履约检查。
+- 执行 [web-novel-top-design.md](../guides/web-novel-top-design.md) 的代入感、Core Loop、合理化主角和系统/规则检查。
 - 执行 [reader-hook-gate.md](../guides/reader-hook-gate.md) 的追读力、幽默、亮点、结尾反套路和爽文专项评分。
+- 执行 [editor-gate.md](../guides/editor-gate.md) 的编辑审稿门禁，记录 `editorGateStatus`、`editorGateScore`、`readerLossRisks`、`editorGateIssues` 和 `revisionLevel`。
 - 执行 [auto-repair-loop.md](../guides/auto-repair-loop.md) 的失败项编号和复检规则。
 - 所有检测至少执行 3 轮，最终按保守聚合放行。
 - 必须给出证据摘录或位置说明。
@@ -92,8 +100,10 @@
 
 职责：
 - 只读取 QA 报告中的失败项并修复。
+- 对 `SC-XX` 场景卡问题先回到场景设计，不直接扩写正文凑字数。
 - 对 `A-XX` 反 AI 问题做定向修复，不做泛泛润色。
-- 对 `R-XX` 追读力、`M-XX` 机械化结尾和 `S-XX` 爽文专项问题做定向修复，不靠硬塞段子或硬钩子补救。
+- 对 `R-XX` 追读力、`M-XX` 机械化结尾、`W-XX` 网文顶层设计和 `S-XX` 爽文专项问题做定向修复，不靠硬塞段子或硬钩子补救。
+- 对 `E-XX` Editor Gate 问题按 `revisionLevel` 分层修复；`structure` 级必须回到章节契约或场景卡，不能只润色。
 - 保留已通过的核心事件、承接关系和结尾策略。
 - 每轮修复后交回 Evaluator 复评。
 - 修复完成后不得自行标记通过，必须等待 Evaluator 重新三轮检测。
@@ -113,6 +123,6 @@
 - 写入 `progress/latest.txt` 和月度进度日志。
 
 状态写入规则：
-- `qaStatus == "pass"`、`antiAiStatus == "pass"`、`literaryScore` 达标、`readerHookStatus == "pass"`、`readerHookScore` 达标、`endingStrategy` 合法、`formulaicIssues` 为空、爽文专项通过（如适用）、`reviewRoundCount >= 3`、`repairRequired == false`、`needsRecheck == false`、`lastFailureCodes` 为空且无阻塞项时，才可将章节标记为 `completed`。
+- `qaStatus == "pass"`、`sceneCardStatus == "pass"`（启用时）、`antiAiStatus == "pass"`、`literaryScore` 达标、`readerHookStatus == "pass"`、`readerHookScore` 达标、`endingStrategy` 合法、`formulaicIssues` 为空、网文顶层设计通过（启用时）、爽文专项通过、Editor Gate 通过（启用时）、`reviewRoundCount >= 3`、`repairRequired == false`、`needsRecheck == false`、`lastFailureCodes` 为空且无阻塞项时，才可将章节标记为 `completed`。
 - `qaStatus == "fail"` 或存在阻塞项时，章节保持 `failed` 或 `in_revision`。
 - 超过 3 轮仍失败时，记录为 `blocked`，进入最终报告。

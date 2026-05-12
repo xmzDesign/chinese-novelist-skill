@@ -7,6 +7,7 @@
 - **章节文件**：`第XX章-[标题].md`
 - **大纲来源**：`01-大纲.md` 第[XX]章规划
 - **上一章摘要**：`summaries/第[XX-1]章.md`（第1章填“无”）
+- **场景卡**：`scene-cards/第XX章.md`
 - **QA 报告**：`qa/第XX章.md`
 - **最大修复轮次**：3
 - **最低检测轮次**：3
@@ -17,11 +18,17 @@
 ## 输入上下文
 
 - **核心事件**：[本章必须发生的事件]
+- **质量基准对应承诺**：[本章兑现 `05-质量基准.md` 中哪条读者承诺]
+- **读者流失雷区**：[本章最容易在哪个位置让读者弃书，如何避免]
 - **承接上章**：[必须回应的上一章悬念或情绪]
 - **出场人物**：[人物列表]
 - **场景列表**：[场景1；场景2；场景3]
 - **章首引子类型**：[从 hook-techniques.md 选择]
 - **结尾策略 endingStrategy**：payoff-close / soft-question / decision-point / emotional-aftertaste / resource-reveal / relationship-shift / threat-approach
+- **代入锚点 immersionAnchor**：[本章让读者共鸣的现实压力、委屈、欲望、关系或职业处境]
+- **合理化说明 rationalizationNote**：[本章如何通过规则、证据、代价或旁人反应让离奇设定看似合理]
+- **Core Loop 步骤 coreLoopStep**：[本章处在“进入问题/解决冲突/获得收益/升级/进入更难挑战”的哪一步]
+- **系统/规则参与 systemRuleUse**：[系统、金手指、职业流程、能力体系、社会规则或案件逻辑如何推动本章]
 - **本章兑现 expectationPayoff**：[本章必须让读者得到什么情绪、信息、爽点或关系推进]
 - **下章期待 expectationNext**：[读者继续读的具体理由，不等于硬悬念]
 - **爽点节拍 satisfactionBeats**：[必填；写清本章有效情绪兑现]
@@ -46,7 +53,10 @@
 
 - 严格完成本章核心事件。
 - 让出场人物的行为和说话方式符合 `00-人物档案.md`。
+- 执行 `05-质量基准.md` 中的目标读者、核心承诺和质量红线。
+- 按 `scene-cards/第XX章.md` 完成每个场景的目的、冲突、信息释放、情绪兑现和局面变化。
 - 回应上一章摘要中的关键悬念。
+- 执行 `04-网文顶层设计.md` 中的代入感、核心循环、系统/规则和挖坑填坑要求。
 - 为下一章留下可承接的追读理由；结尾可以收束、兑现、留余味，也可以制造悬念。
 
 ### 范围外
@@ -60,35 +70,40 @@
 | # | 标准 | 验证方式 | 阻塞 |
 |---|---|---|---|
 | 1 | 正文字数不少于 3000 个汉字，建议不超过 5000 个汉字 | script | 是 |
-| 2 | 本章核心事件完整发生，不能只铺垫不兑现 | evaluator | 是 |
-| 3 | 明确回应上一章至少 1 个悬念、情绪或行动后果 | evaluator | 是 |
-| 4 | 主要人物行为、动机、语气符合人物档案 | evaluator | 是 |
-| 5 | 全章至少有 2 个张力波峰，且中段不连续空转 | evaluator | 否 |
-| 6 | 对话推动情节或暴露人物关系，避免同质化闲聊 | evaluator | 否 |
-| 7 | 至少出现 1 个读者预期外的信息、行动或反转 | evaluator | 否 |
-| 8 | 结尾策略清晰，追读理由成立，并能被下一章规划承接 | evaluator | 是 |
-| 9 | 没有明显 AI 味：空泛抒情、套话、堆砌形容词、四字格律过密 | evaluator | 否 |
-| 10 | 伏笔记录完整：新增、推进、回收都写入摘要或伏笔表 | evaluator | 否 |
-| 11 | 第1-3章满足黄金三章专项门禁 | evaluator | 是 |
-| 12 | 反 AI 门禁通过：`antiAiStatus == "pass"` | evaluator | 是 |
-| 13 | 文学质量达标：普通章节 `literaryScore >= 80`，第1-3章 `>= 85` | evaluator | 是 |
-| 14 | 追读门禁通过：有亮点、有追读理由，`readerHookStatus == "pass"` | evaluator | 是 |
-| 15 | 所有检测至少完成 3 轮，且三轮均无阻塞失败 | evaluator | 是 |
-| 16 | 若曾验收失败，修复后已重新三轮检测，且 `repairRequired == false`、`needsRecheck == false`、`lastFailureCodes` 为空 | evaluator/state | 是 |
-| 17 | 无机械化结尾问题：`formulaicIssues` 为空，连续章节不重复强悬念策略 | evaluator/state | 是 |
-| 18 | 爽文专项通过：`shuangwenStatus == "pass"` 且 `satisfactionBeats` 非空 | evaluator | 是 |
+| 2 | 场景卡通过：`sceneCardStatus == "pass"` 且 `sceneCardIssues` 为空 | evaluator/state | 是 |
+| 3 | 本章核心事件完整发生，不能只铺垫不兑现 | evaluator | 是 |
+| 4 | 明确回应上一章至少 1 个悬念、情绪或行动后果 | evaluator | 是 |
+| 5 | 主要人物行为、动机、语气符合人物档案 | evaluator | 是 |
+| 6 | 全章至少有 2 个张力波峰，且中段不连续空转 | evaluator | 否 |
+| 7 | 对话推动情节或暴露人物关系，避免同质化闲聊 | evaluator | 否 |
+| 8 | 至少出现 1 个读者预期外的信息、行动或反转 | evaluator | 否 |
+| 9 | 结尾策略清晰，追读理由成立，并能被下一章规划承接 | evaluator | 是 |
+| 10 | 没有明显 AI 味：空泛抒情、套话、堆砌形容词、四字格律过密 | evaluator | 否 |
+| 11 | 伏笔记录完整：新增、推进、回收都写入摘要或伏笔表 | evaluator | 否 |
+| 12 | 第1-3章满足黄金三章专项门禁 | evaluator | 是 |
+| 13 | 反 AI 门禁通过：`antiAiStatus == "pass"` | evaluator | 是 |
+| 14 | 文学质量达标：普通章节 `literaryScore >= 80`，第1-3章 `>= 85` | evaluator | 是 |
+| 15 | 追读门禁通过：有亮点、有追读理由，`readerHookStatus == "pass"` | evaluator | 是 |
+| 16 | 所有检测至少完成 3 轮，且三轮均无阻塞失败 | evaluator | 是 |
+| 17 | 若曾验收失败，修复后已重新三轮检测，且 `repairRequired == false`、`needsRecheck == false`、`lastFailureCodes` 为空 | evaluator/state | 是 |
+| 18 | 无机械化结尾问题：`formulaicIssues` 为空，连续章节不重复强悬念策略 | evaluator/state | 是 |
+| 19 | 网文顶层设计通过：`webNovelStatus == "pass"`，`webNovelIssues` 为空，代入锚点、合理化说明、Core Loop 步骤和系统/规则参与均非空 | evaluator | 是 |
+| 20 | 爽文专项通过：`shuangwenStatus == "pass"` 且 `satisfactionBeats` 非空 | evaluator | 是 |
+| 21 | Editor Gate 通过：`editorGateStatus == "pass"`、`editorGateScore` 达标、无读者流失风险 | editor | 是 |
 
 ## 评分量表
 
 | 维度 | 分值 |
 |---|---:|
 | 字数与结构 | 10 |
-| 大纲履约 | 20 |
-| 承接与连贯 | 15 |
-| 人物一致性 | 15 |
+| 场景卡履约 | 10 |
+| 大纲履约 | 10 |
+| 承接与连贯 | 10 |
+| 人物一致性 | 10 |
 | 冲突与节奏 | 10 |
 | 对话质量 | 10 |
 | 结尾策略与追读理由 | 10 |
+| 网文顶层设计履约 | 10 |
 | 去 AI 味与文字质感 | 10 |
 
 ## 文学质量评分
@@ -131,7 +146,10 @@
 - `memorableMoment` 和 `chapterTurnPageHook` 必须非空。
 - `endingStrategy` 必须属于允许策略之一。
 - `formulaicIssues` 必须为空。
+- 启用 `sceneCardPolicy` 时，`sceneCardStatus` 必须为 `pass`，`sceneCardIssues` 必须为空。
+- 启用 `webNovelDesign` 时，`immersionAnchor`、`rationalizationNote`、`coreLoopStep`、`systemRuleUse` 必须非空，`webNovelStatus` 必须为 `pass`，`webNovelIssues` 必须为空。
 - `satisfactionBeats` 必须非空，`shuangwenStatus` 必须为 `pass`，`shuangwenIssues` 必须为空。
+- 启用 `editorGate` 时，`editorGateStatus` 必须为 `pass`，`editorGateScore` 必须达标，`readerLossRisks` 和 `editorGateIssues` 必须为空，`revisionLevel` 必须为 `none`。
 - 每章至少完成 3 轮检测；任一轮发现阻塞项时，最终不得 `PASS`。
 - 修复后的章节必须重新完成 3 轮检测；不得沿用修复前的 QA 分数或结论。
 - `repairRequired`、`needsRecheck` 必须为 `false`，`lastFailureCodes` 必须为空。
