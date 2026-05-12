@@ -351,6 +351,18 @@ def run_smoke_tests() -> None:
             "missing-satisfaction-beats",
         )
 
+        satisfaction_weak_dir = tmp_root / "fixture-satisfaction-weak"
+        satisfaction_weak_dir.mkdir()
+        satisfaction_weak_plan = base_plan()
+        satisfaction_weak_plan["chapters"][0]["satisfactionBeats"] = ["打脸成功"]
+        write_project(satisfaction_weak_dir, satisfaction_weak_plan)
+        assert_result(
+            "satisfaction-weak/pre-mark-pass",
+            run_command([str(HOOK_SCRIPT), "pre-mark-pass", str(satisfaction_weak_dir), "--chapter", "1"]),
+            False,
+            "weak-satisfaction-beats",
+        )
+
         web_novel_missing_dir = tmp_root / "fixture-web-novel-missing"
         web_novel_missing_dir.mkdir()
         web_novel_missing_plan = base_plan()

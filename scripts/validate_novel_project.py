@@ -63,6 +63,39 @@ def add_issue(issues: list[dict[str, str]], level: str, code: str, message: str)
     issues.append({"level": level, "code": code, "message": message})
 
 
+def is_meaningful_text(value: Any) -> bool:
+    """判断字段是否不是占位符或空泛短语。"""
+    if not isinstance(value, str):
+        return False
+    text = value.strip()
+    if len(text) < 12:
+        return False
+    lowered = text.lower()
+    if lowered in {"todo", "tbd", "none", "null"}:
+        return False
+    if text in {"无", "待定", "待补充", "[]"}:
+        return False
+    if "[" in text and "]" in text:
+        return False
+    return True
+
+
+def has_meaningful_satisfaction_beats(value: Any) -> bool:
+    """satisfactionBeats 需要写出可见收益，不能只放占位符。"""
+    if not isinstance(value, list) or not value:
+        return False
+
+    for beat in value:
+        if isinstance(beat, dict):
+            meaningful_parts = sum(1 for part in beat.values() if is_meaningful_text(part))
+            if meaningful_parts >= 3:
+                return True
+        elif is_meaningful_text(beat):
+            return True
+
+    return False
+
+
 def is_web_novel_enabled(plan: dict[str, Any]) -> bool:
     """仅在写作计划显式包含 webNovelDesign 时启用新增网文顶层门禁。"""
     config = plan.get("webNovelDesign")
@@ -413,6 +446,8 @@ def check_chapter_record(
         satisfaction_beats = chapter.get("satisfactionBeats") or []
         if not satisfaction_beats:
             add_issue(issues, "error", "completed-missing-satisfaction-beats", f"{label} 缺少 satisfactionBeats")
+        elif not has_meaningful_satisfaction_beats(satisfaction_beats):
+            add_issue(issues, "error", "completed-weak-satisfaction-beats", f"{label} satisfactionBeats 过短或仍是占位符")
         if chapter.get("shuangwenStatus") != "pass":
             add_issue(issues, "error", "completed-shuangwen-not-pass", f"{label} 爽文专项 shuangwenStatus 不是 pass")
         if chapter.get("shuangwenIssues"):

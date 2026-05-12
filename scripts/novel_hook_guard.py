@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 from check_chapter_wordcount import check_chapter
-from validate_novel_project import validate_project
+from validate_novel_project import has_meaningful_satisfaction_beats, validate_project
 
 
 Issue = dict[str, str]
@@ -246,8 +246,11 @@ def run_pre_mark_pass(project_dir: Path, plan: dict[str, Any], chapter: dict[str
         if chapter.get("sceneCardIssues"):
             add_issue(issues, "error", "scene-card-issues-exist", f"{label} 仍存在场景卡问题")
 
-    if not chapter.get("satisfactionBeats"):
+    satisfaction_beats = chapter.get("satisfactionBeats")
+    if not satisfaction_beats:
         add_issue(issues, "error", "missing-satisfaction-beats", f"{label} 缺少 satisfactionBeats")
+    elif not has_meaningful_satisfaction_beats(satisfaction_beats):
+        add_issue(issues, "error", "weak-satisfaction-beats", f"{label} satisfactionBeats 过短或仍是占位符")
     if chapter.get("shuangwenStatus") != "pass":
         add_issue(issues, "error", "shuangwen-not-pass", f"{label} shuangwenStatus 不是 pass")
     if chapter.get("shuangwenIssues"):
