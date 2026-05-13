@@ -32,6 +32,30 @@ def count_chinese_words(text: str) -> int:
     return len(chinese_chars)
 
 
+MAXIM_PATTERNS = [
+    re.compile(r'再[^。！？\n]{0,16}是[^。！？\n]{1,24}，再[^。！？\n]{0,16}是[^。！？\n]{1,24}'),
+    re.compile(r'不是[^。！？\n]{2,28}，?而是[^。！？\n]{2,32}'),
+    re.compile(r'(真正|本质上|说到底|归根结底|从来都|永远都)[^。！？\n]{4,46}'),
+    re.compile(r'(知道答案的人|聪明的人|强者|弱者|命运|规则)[^。！？\n]{0,28}(也得|从来|永远|不过是|只是)[^。！？\n]{2,42}'),
+]
+
+
+def detect_maxim_sentences(text: str, limit: int = 5) -> list[str]:
+    """检测格言式总结句。该检查只抓明显模式，避免替代人工 QA。"""
+    issues: list[str] = []
+    for match in re.finditer(r'[^。！？\n]{10,90}[。！？]?', text):
+        sentence = match.group(0).strip()
+        if not sentence:
+            continue
+        if '“' in sentence or '”' in sentence or '"' in sentence:
+            continue
+        if any(pattern.search(sentence) for pattern in MAXIM_PATTERNS):
+            issues.append(sentence[:90])
+            if len(issues) >= limit:
+                break
+    return issues
+
+
 def extract_content_from_chapter(file_path: Path) -> str:
     """从章节文件中提取正文内容（排除标题等元数据）"""
     with open(file_path, 'r', encoding='utf-8') as f:
@@ -67,18 +91,29 @@ def check_chapter(file_path: str, min_words: int = 3000) -> dict:
 
     main_content = extract_content_from_chapter(path)
     word_count = count_chinese_words(main_content)
+    maxim_issues = detect_maxim_sentences(main_content)
 
-    status = 'pass' if word_count >= min_words else 'fail'
-    message = f'字数: {word_count}' + (
-        f' (✓ 达标)' if word_count >= min_words else f' (✗ 不足，需要至少 {min_words} 字)'
-    )
+    word_count_status = 'pass' if word_count >= min_words else 'fail'
+    style_status = 'pass' if not maxim_issues else 'fail'
+    status = 'pass' if word_count_status == 'pass' and style_status == 'pass' else 'fail'
+
+    message_parts = [
+        f'字数: {word_count}' + (
+            f' (✓ 达标)' if word_count >= min_words else f' (✗ 不足，需要至少 {min_words} 字)'
+        )
+    ]
+    if maxim_issues:
+        message_parts.append(f'格言式总结句: {len(maxim_issues)} 处')
 
     return {
         'file': str(path),
         'exists': True,
         'word_count': word_count,
+        'word_count_status': word_count_status,
+        'style_status': style_status,
+        'maxim_issues': maxim_issues,
         'status': status,
-        'message': message
+        'message': '；'.join(message_parts)
     }
 
 
@@ -108,6 +143,8 @@ def print_results(results: list, min_words: int = 3000):
     total_words = 0
     passed = 0
     failed = 0
+    word_failed = 0
+    style_failed = 0
 
     print('\n' + '=' * 60)
     print('章节字数检查报告')
@@ -126,21 +163,30 @@ def print_results(results: list, min_words: int = 3000):
         else:
             failed += 1
             icon = '⚠️ '
+            if result.get('word_count_status', result['status']) != 'pass':
+                word_failed += 1
+            if result.get('style_status') == 'fail':
+                style_failed += 1
 
         print(f'\n{icon} {Path(result["file"]).name}')
         print(f'   {result["message"]}')
+        for issue in result.get('maxim_issues', []):
+            print(f'   - 格言式总结句: {issue}')
 
     print('\n' + '-' * 60)
-    print(f'总计: {len(results)} 章 | {passed} 章达标 | {failed} 章不足 | 总字数: {total_words:,}')
+    print(f'总计: {len(results)} 章 | {passed} 章通过 | {failed} 章未通过 | 总字数: {total_words:,}')
     print('-' * 60)
 
-    if failed > 0:
-        print(f'\n⚠️  有 {failed} 章内容不足 {min_words} 字，建议使用扩充技巧:')
+    if word_failed > 0:
+        print(f'\n⚠️  有 {word_failed} 章内容不足 {min_words} 字，建议使用扩充技巧:')
         print('   - 添加细节描写（环境、心理、动作）')
         print('   - 增加对话场景')
         print('   - 扩展人物内心活动')
         print('   - 补充背景故事')
         print(f'\n   参考: references/content-expansion.md')
+
+    if style_failed > 0:
+        print(f'\n⚠️  有 {style_failed} 章存在格言式总结句，必须改成动作、对话、关系变化或新风险。')
 
 
 def main():

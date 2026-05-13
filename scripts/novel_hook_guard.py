@@ -136,18 +136,25 @@ def require_existing_path(
 
 
 def check_word_count(project_dir: Path, chapter: dict[str, Any], min_words: int, issues: list[Issue]) -> None:
-    """检查章节正文是否达到最低字数。"""
+    """检查章节正文是否达到最低字数，并拦截格言式总结句。"""
     file_path = require_existing_path(project_dir, chapter, "filePath", "章节文件", issues)
     if file_path is None:
         return
 
     result = check_chapter(str(file_path), min_words)
-    if result["status"] != "pass":
+    if result.get("word_count_status", result["status"]) != "pass":
         add_issue(
             issues,
             "error",
             "word-count-fail",
             f"第{chapter.get('chapterNumber')}章字数 {result['word_count']}，低于 {min_words}",
+        )
+    for sentence in result.get("maxim_issues", []):
+        add_issue(
+            issues,
+            "error",
+            "maxim-sentence-exists",
+            f"第{chapter.get('chapterNumber')}章存在格言式总结句: {sentence}",
         )
 
 

@@ -335,7 +335,14 @@ def check_chapter_record(
     if file_path is not None and file_path.exists():
         word_result = check_chapter(str(file_path), min_words)
         result["wordCount"] = word_result["word_count"]
-        result["wordCountPass"] = word_result["status"] == "pass"
+        result["wordCountPass"] = word_result.get("word_count_status", word_result["status"]) == "pass"
+        for sentence in word_result.get("maxim_issues", []):
+            add_issue(
+                issues,
+                "error",
+                "chapter-has-maxim-sentences",
+                f"{label} 存在格言式总结句: {sentence}",
+            )
         planned_count = chapter.get("wordCount")
         if planned_count is not None and planned_count != word_result["word_count"]:
             add_issue(

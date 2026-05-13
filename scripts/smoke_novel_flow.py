@@ -363,6 +363,22 @@ def run_smoke_tests() -> None:
             "weak-satisfaction-beats",
         )
 
+        maxim_sentence_dir = tmp_root / "fixture-maxim-sentence"
+        maxim_sentence_dir.mkdir()
+        maxim_sentence_plan = base_plan()
+        maxim_sentence_plan["chapters"][0]["status"] = "in_progress"
+        write_project(maxim_sentence_dir, maxim_sentence_plan)
+        (maxim_sentence_dir / "第01章-烟火.md").write_text(
+            "# 第01章 烟火\n\n再往前是情报，再往后是泄露。少年推开门，看见街口灯火忽明忽暗，朋友一把拽住他的袖子，让他立刻解释墙上的新刀痕。",
+            encoding="utf-8",
+        )
+        assert_result(
+            "maxim-sentence/post-draft",
+            run_command([str(HOOK_SCRIPT), "post-draft", str(maxim_sentence_dir), "--chapter", "1"]),
+            False,
+            "maxim-sentence-exists",
+        )
+
         web_novel_missing_dir = tmp_root / "fixture-web-novel-missing"
         web_novel_missing_dir.mkdir()
         web_novel_missing_plan = base_plan()

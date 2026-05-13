@@ -79,6 +79,8 @@ sceneCardIssues：[]
 | A-06 | 作者替人物总结主题 | PASS/FAIL | | | |
 | A-07 | 低级连续性错误 | PASS/FAIL | | | |
 | A-08 | 冲突或爽点缺席 | PASS/FAIL | | | |
+| A-09 | 格言式总结句替代事件 | PASS/FAIL | | | |
+| A-10 | 主角分析器化，人的反应不足 | PASS/FAIL | | | |
 
 antiAiStatus：pass / fail
 
@@ -111,6 +113,7 @@ literaryScore：[0-100]
 | W-06 | 系统/金手指/能力规则随意，像作者临时开挂 | PASS/FAIL | | | |
 | W-07 | 前三章没有快速抛出核心梗、优势来源和初始冲突 | PASS/FAIL/不适用 | | | |
 | W-08 | 对手低智或世界无反应，导致爽感廉价 | PASS/FAIL | | | |
+| W-09 | 真实细节只作说明，没有转化为压力、选择或风险 | PASS/FAIL | | | |
 
 webNovelStatus：pass / fail
 immersionAnchor：[本章代入锚点]
@@ -193,6 +196,8 @@ readerHookScore：[0-100]
 | E-06 | 结尾只有硬钩子，没有本章价值 | plot | PASS/FAIL | | | |
 | E-07 | 反派低智或世界无反应，爽感廉价 | character | PASS/FAIL | | | |
 | E-08 | 文字能读但没有类型味道 | prose | PASS/FAIL | | | |
+| E-09 | 配角只提供信息，不制造压迫 | character | PASS/FAIL | | | |
+| E-10 | 首章核心梗后缺少外部风险 | plot | PASS/FAIL/不适用 | | | |
 
 editorGateStatus：pass / fail
 editorGateScore：[0-100]
